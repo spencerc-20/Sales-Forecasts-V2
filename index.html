@@ -1080,7 +1080,15 @@ function renderLeadershipView(main) {
           <h2>Leadership Dashboard</h2>
           <div class="sub">${weekLabel(S.currentWeek)}</div>
         </div>
-        <span class="back-link" onclick="switchRole()">← Switch Role</span>
+        <div style="display:flex;align-items:center;gap:10px">
+          <button class="btn btn-ghost" onclick="exportCSV()" style="display:flex;align-items:center;gap:6px;padding:7px 13px">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M8 2v9M4 7l4 4 4-4"/><rect x="2" y="12" width="12" height="2" rx="1"/>
+            </svg>
+            Export CSV
+          </button>
+          <span class="back-link" onclick="switchRole()">← Switch Role</span>
+        </div>
       </div>
 
       <div class="metric-grid">${metCards}</div>
@@ -1119,6 +1127,95 @@ function renderLeadershipView(main) {
         </table>
       </div>
     </div>`;
+}
+
+function exportCSV() {
+  const wk  = S.currentWeek;
+  const wl  = weekLabel(wk);
+  const rows = [];
+
+  // ── Header ──────────────────────────────────────────────────
+  rows.push([
+    'Week', 'Region', 'Rep',
+    'Category', 'Forecast ($)', 'Rep Close %', 'Rep Projected ($)',
+    'Mgr Close %', 'Mgr Projected ($)', 'Notes'
+  ]);
+
+  // ── Per-rep, per-category detail ────────────────────────────
+  Object.keys(REGIONS).forEach(region => {
+    const rgk = sk(region);
+    REGIONS[region].forEach(rep => {
+      const rk = sk(rep);
+      const rd = repData(rk);
+      CATEGORIES.forEach(cat => {
+        const ck   = sk(cat);
+        const cd   = (rd && rd[ck]) || {};
+        const amt  = num(cd.amount);
+        const rcp  = num(cd.closePercent);
+        const rprj = amt * rcp / 100;
+        const w    = wgtData(rgk, rk);
+        const wv   = num(w[ck]);
+        const mcp  = wv > 0 ? wv : rcp;
+        const mprj = amt * mcp / 100;
+        rows.push([
+          wl, region, rep, cat,
+          amt, rcp, rprj,
+          wv > 0 ? wv : '',
+          mprj,
+          (cd.notes || '').replace(/"/g, '""')
+        ]);
+      });
+    });
+  });
+
+  // ── Region summary ───────────────────────────────────────────
+  rows.push([]);
+  rows.push(['Week', 'Region',
+    'Rep Forecast Total', 'Rep Core Projected', 'Mgr Core Forecast',
+    'Rep Edu Projected',  'Mgr Edu Forecast',   'Total Mgr Forecast',
+    'Actual Core $', 'Actual Edu $', 'Core Attainment %', 'Total Attainment %'
+  ]);
+  Object.keys(REGIONS).forEach(region => {
+    const rt = regionTotals(region);
+    rows.push([
+      wl, region,
+      rt.repFcst, rt.repCoreProj, rt.mgrCoreProj,
+      rt.repEduProj, rt.mgrEduProj, rt.totalMgr,
+      rt.actCore, rt.actEdu,
+      rt.mgrCoreProj > 0 ? rt.coreAtt.toFixed(1) + '%' : '',
+      rt.totalMgr    > 0 ? rt.totalAtt.toFixed(1) + '%' : ''
+    ]);
+  });
+
+  // ── Grand total row ──────────────────────────────────────────
+  const at = allTotals();
+  const gca = at.mgrCoreProj > 0 ? (at.actCore / at.mgrCoreProj * 100).toFixed(1) + '%' : '';
+  const gta = at.totalMgr    > 0 ? ((at.actCore + at.actEdu) / at.totalMgr * 100).toFixed(1) + '%' : '';
+  rows.push([
+    wl, 'GRAND TOTAL',
+    at.repFcst, at.repCoreProj, at.mgrCoreProj,
+    at.repEduProj, at.mgrEduProj, at.totalMgr,
+    at.actCore, at.actEdu, gca, gta
+  ]);
+
+  // ── Build CSV string ─────────────────────────────────────────
+  const csv = rows.map(r =>
+    r.map(cell => {
+      const s = String(cell ?? '');
+      return s.includes(',') || s.includes('"') || s.includes('\n')
+        ? `"${s}"` : s;
+    }).join(',')
+  ).join('\r\n');
+
+  // ── Trigger download ─────────────────────────────────────────
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  const safe = wk.replace(/[^a-zA-Z0-9_-]/g, '_');
+  a.href     = url;
+  a.download = `NorismedicalForecast_${safe}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 function onActual(el) {

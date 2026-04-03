@@ -1,0 +1,1332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Noris Medical — Sales Forecast Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<style>
+/* ─── RESET & ROOT ─────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:        #0B1220;
+  --surface:   #131d2e;
+  --surface-2: #1a2740;
+  --border:    #243044;
+  --text:      #EEF2FF;
+  --muted:     #7C8BAA;
+  --accent:    #3B82F6;
+  --green:     #16A34A;
+  --green-bg:  rgba(22,163,74,.12);
+  --red:       #DC2626;
+  --red-bg:    rgba(220,38,38,.12);
+  --amber:     #D97706;
+  --topbar-h:  58px;
+}
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+button { font-family: inherit; cursor: pointer; }
+
+/* ─── TOPBAR ───────────────────────────────────────────────── */
+#topbar {
+  position: sticky; top: 0; z-index: 100;
+  height: var(--topbar-h);
+  background: #080d18;
+  border-bottom: 1px solid var(--border);
+  padding: 0 20px;
+  display: flex; align-items: center; gap: 14px;
+}
+.tb-brand { font-size: 14px; font-weight: 700; white-space: nowrap; letter-spacing: -.01em; }
+.tb-brand em { color: var(--accent); font-style: normal; }
+.tb-center {
+  flex: 1; display: flex; align-items: center;
+  justify-content: center; gap: 8px;
+}
+.wk-btn {
+  width: 26px; height: 26px; border-radius: 6px;
+  background: var(--surface); border: 1px solid var(--border);
+  color: var(--text); font-size: 15px; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s;
+}
+.wk-btn:hover { background: var(--surface-2); }
+#weekLabel {
+  font-size: 12px; font-weight: 500; color: var(--text);
+  min-width: 186px; text-align: center;
+}
+.tb-right { display: flex; align-items: center; gap: 10px; }
+#saveStatus { font-size: 12px; font-weight: 500; min-width: 86px; text-align: right; }
+#saveStatus.saving { color: var(--amber); }
+#saveStatus.saved  { color: var(--green); }
+#saveStatus.error  { color: var(--red); font-size: 11px; min-width: 200px; }
+.badge {
+  background: var(--surface); border: 1px solid var(--border);
+  color: var(--muted); font-size: 10px; font-weight: 600;
+  padding: 3px 7px; border-radius: 4px; white-space: nowrap;
+  letter-spacing: .03em;
+}
+.btn {
+  padding: 7px 14px; border-radius: 7px;
+  font-size: 12px; font-weight: 600; border: none;
+  transition: all .15s; cursor: pointer;
+}
+.btn-ghost {
+  background: transparent; border: 1px solid var(--border); color: var(--muted);
+}
+.btn-ghost:hover { background: var(--surface); color: var(--text); }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: #2563EB; }
+
+/* ─── MAIN ─────────────────────────────────────────────────── */
+#main { min-height: calc(100vh - var(--topbar-h)); }
+
+/* ─── LOADING ──────────────────────────────────────────────── */
+.loading-wrap {
+  display: flex; align-items: center; justify-content: center;
+  min-height: calc(100vh - var(--topbar-h));
+  color: var(--muted); gap: 10px; font-size: 14px;
+}
+.spin {
+  width: 18px; height: 18px;
+  border: 2px solid var(--border); border-top-color: var(--accent);
+  border-radius: 50%; animation: spin .55s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ─── FADE IN ──────────────────────────────────────────────── */
+.fade { animation: fadeUp .2s ease; }
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(5px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── ROLE SELECT ──────────────────────────────────────────── */
+.role-screen {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - var(--topbar-h));
+  padding: 40px 20px; gap: 36px;
+}
+.role-hd h1 { font-size: 30px; font-weight: 700; text-align: center; margin-bottom: 6px; }
+.role-hd p  { color: var(--muted); text-align: center; font-size: 14px; }
+.role-cards { display: flex; gap: 18px; flex-wrap: wrap; justify-content: center; }
+.role-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; padding: 28px 24px; width: 200px;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 10px; text-align: center; cursor: pointer;
+  transition: all .2s;
+}
+.role-card:hover { border-color: var(--accent); background: var(--surface-2); transform: translateY(-2px); }
+.role-icon { font-size: 34px; }
+.role-card h3 { font-size: 15px; font-weight: 700; }
+.role-card p  { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+/* ─── LOGIN CARD ───────────────────────────────────────────── */
+.login-screen {
+  display: flex; align-items: center; justify-content: center;
+  min-height: calc(100vh - var(--topbar-h)); padding: 40px 20px;
+}
+.login-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; padding: 34px; width: 100%; max-width: 400px;
+}
+.login-card h2 { font-size: 20px; font-weight: 700; margin-bottom: 5px; }
+.login-card .sub { color: var(--muted); font-size: 13px; margin-bottom: 22px; }
+.fld { margin-bottom: 14px; }
+.fld label {
+  display: block; font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .07em;
+  color: var(--muted); margin-bottom: 5px;
+}
+input[type="text"],
+input[type="number"],
+input[type="password"],
+select {
+  background: var(--bg); border: 1px solid var(--border);
+  color: var(--text); padding: 9px 12px;
+  border-radius: 8px; font-family: 'DM Sans', sans-serif;
+  font-size: 13px; width: 100%; transition: border-color .15s;
+}
+input:focus, select:focus { outline: none; border-color: var(--accent); }
+select option { background: var(--surface); }
+.err-msg { color: var(--red); font-size: 12px; margin-top: 10px; display: none; }
+.back-row { margin-top: 14px; text-align: center; }
+.back-link {
+  color: var(--muted); font-size: 12px; font-weight: 500;
+  cursor: pointer; transition: color .15s; display: inline-flex;
+  align-items: center; gap: 4px;
+}
+.back-link:hover { color: var(--text); }
+
+/* ─── CONTAINERS ───────────────────────────────────────────── */
+.cont  { max-width: 1300px; margin: 0 auto; padding: 28px 22px; }
+.cont-md { max-width: 960px; margin: 0 auto; padding: 28px 22px; }
+
+/* ─── SECTION HEADER ───────────────────────────────────────── */
+.sec-hd {
+  display: flex; align-items: flex-start;
+  justify-content: space-between; margin-bottom: 22px;
+}
+.sec-hd h2 { font-size: 20px; font-weight: 700; }
+.sec-hd .sub { color: var(--muted); font-size: 13px; margin-top: 3px; }
+
+/* ─── TABLE CARD ───────────────────────────────────────────── */
+.tcard {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; overflow: hidden; overflow-x: auto;
+}
+.tcard table { width: 100%; border-collapse: collapse; }
+.tcard th {
+  padding: 10px 14px; font-size: 10px; font-weight: 700;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
+  background: #0d1525; border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.tcard td {
+  padding: 9px 14px; border-bottom: 1px solid #17223a;
+  font-size: 13px; vertical-align: middle;
+}
+.tcard tbody tr:last-child td { border-bottom: none; }
+.tcard tr.total-row td {
+  font-weight: 700; background: #0d1525;
+  border-top: 2px solid var(--border); border-bottom: none;
+}
+.tcard tr.target-row td {
+  color: var(--muted); font-size: 12px;
+  background: #0a101c; border-bottom: none;
+}
+
+/* Table inputs */
+input.ti {
+  background: transparent; border: 1px solid transparent;
+  padding: 4px 7px; border-radius: 5px; width: 100%; min-width: 70px;
+}
+input.ti:hover { border-color: var(--border); }
+input.ti:focus { border-color: var(--accent); background: var(--bg); outline: none; }
+input.ti[type="number"] { text-align: right; }
+
+/* ─── METRIC GRID ──────────────────────────────────────────── */
+.metric-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(166px, 1fr));
+  gap: 14px; margin-bottom: 26px;
+}
+.metric-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 11px; padding: 18px 16px;
+}
+.metric-card .ml { font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .07em; color: var(--muted); margin-bottom: 7px; }
+.metric-card .mv { font-size: 22px; font-weight: 700; }
+
+/* ─── COLORS ───────────────────────────────────────────────── */
+.vg { color: #4ADE80; font-weight: 700; }
+.vr { color: #F87171; font-weight: 700; }
+.va { color: #FCD34D; font-weight: 600; }
+.att-g { display: inline-block; background: var(--green-bg); color: #4ADE80;
+  font-weight: 700; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
+.att-r { display: inline-block; background: var(--red-bg); color: #F87171;
+  font-weight: 700; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
+
+/* ─── EXPAND BUTTON ────────────────────────────────────────── */
+.xbtn {
+  background: none; border: none; color: var(--accent);
+  font-size: 12px; font-weight: 700; padding: 3px 7px;
+  border-radius: 4px; transition: background .12s;
+}
+.xbtn:hover { background: rgba(59,130,246,.1); }
+
+/* ─── REP DETAIL TABLE ─────────────────────────────────────── */
+.rep-detail td { padding: 7px 12px; font-size: 12px; border-bottom: 1px solid #111a2a; }
+.rep-detail th { padding: 7px 12px; font-size: 9px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .08em; color: #4f6080; background: #09111e; border-bottom: 1px solid #111a2a; }
+.rep-detail td:first-child { padding-left: 22px; }
+.rep-detail th:first-child { padding-left: 22px; }
+.rep-detail tr:last-child td { border-bottom: none; }
+
+/* ─── REGION BADGE ─────────────────────────────────────────── */
+.rbadge {
+  display: inline-block; background: rgba(59,130,246,.12);
+  color: #93C5FD; font-size: 10px; font-weight: 700;
+  padding: 2px 7px; border-radius: 4px;
+  border: 1px solid rgba(59,130,246,.25);
+}
+
+/* ─── RESPONSIVE ───────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .cont, .cont-md { padding: 18px 14px; }
+  .metric-grid { grid-template-columns: repeat(2, 1fr); }
+  .role-cards { flex-direction: column; align-items: center; }
+  .tb-brand { font-size: 12px; }
+  #weekLabel { min-width: 120px; font-size: 11px; }
+  .badge { display: none; }
+}
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <div class="tb-brand">Noris <em>Medical</em></div>
+  <div class="tb-center">
+    <button class="wk-btn" onclick="changeWeek(-1)">&#8249;</button>
+    <div id="weekLabel">Loading…</div>
+    <button class="wk-btn" onclick="changeWeek(1)">&#8250;</button>
+  </div>
+  <div class="tb-right">
+    <span id="saveStatus"></span>
+    <span class="badge">v2026.03.27.1</span>
+    <button class="btn btn-ghost" style="padding:6px 12px" onclick="switchRole()">Switch Role</button>
+  </div>
+</div>
+
+<div id="main"></div>
+
+<!-- Firebase compat SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<script>
+'use strict';
+
+/* ══════════════════════════════════════════════════════════════
+   CONFIGURATION
+══════════════════════════════════════════════════════════════ */
+
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyAi2XGdiAFiT0nrPmh9ek2ALvnt5k0Wlxc",
+  authDomain: "forecast-sheets-de611.firebaseapp.com",
+  databaseURL: "https://forecast-sheets-de611-default-rtdb.firebaseio.com",
+  projectId: "forecast-sheets-de611",
+  storageBucket: "forecast-sheets-de611.firebasestorage.app",
+  messagingSenderId: "397399703742",
+  appId: "1:397399703742:web:7c3704cc5fc0dd9c181eef"
+};
+
+const DB_ROOT = 'sales_forecast_v4';
+
+const REGIONS = {
+  'CA_NV':      ['SoCal', 'NorEast Cal', 'LA', 'Bay Area', 'Jennifer'],
+  'Central':    ['Sam', 'Shaun', 'Beka', 'Misha'],
+  'East':       ['Ben', 'Tara', 'Ivan'],
+  'North East': ['Eileen', 'Malcolm'],
+  'Inside':     ['Emma', 'Charlotte', 'Constance', 'Carolina'],
+  'Texas':      ['DFW', 'Austin', 'Houston'],
+  'Arizona':    ['Dan'],
+  'Canada':     ['Canada']
+};
+
+const TARGETS = {
+  Sam: 15000, Beka: 10000, Misha: 12000, Shaun: 12000,
+  Malcolm: 10000, Eileen: 36260, Ben: 10000, Tara: 16000,
+  Ivan: 31500, Jennifer: 9000, SoCal: 13000, 'NorEast Cal': 11000,
+  DFW: 20000, Canada: 10500, Emma: 17500, Charlotte: 20500,
+  Constance: 13250, Carolina: 13000, Dan: 10000
+};
+
+const PASSWORDS = {
+  'CA_NV':      'kpowers@norismedical.com',
+  'Central':    'nickg@norismedical.com',
+  'East':       'jamesc@norismedical.com',
+  'North East': 'eileenl@norismedical.com',
+  'Inside':     'jessicah@norismedical.com',
+  'Texas':      'zacks@norismedical.com',
+  'Arizona':    'zacks@norismedical.com',
+  'Canada':     'zacks@norismedical.com',
+  'Leadership': 'Noris!2026'
+};
+
+const CATEGORIES  = ['New Business', 'Digital', 'Existing', 'Education'];
+const CORE_CATS   = ['New Business', 'Digital', 'Existing'];
+const ALL_REPS    = Object.values(REGIONS).flat();
+
+/* ══════════════════════════════════════════════════════════════
+   UTILITY HELPERS
+══════════════════════════════════════════════════════════════ */
+
+function sk(str) {
+  // sanitize to safe Firebase / JS key
+  return String(str).replace(/[^a-zA-Z0-9_]/g, '_');
+}
+
+function fmt(n) {
+  if (n === null || n === undefined || (typeof n === 'number' && isNaN(n))) return '—';
+  return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+
+function num(v) {
+  const n = parseFloat(v);
+  return isNaN(n) ? 0 : n;
+}
+
+function pct(n) {
+  if (!n) return '—';
+  return Number(n).toFixed(1) + '%';
+}
+
+/* ══════════════════════════════════════════════════════════════
+   WEEK HELPERS
+══════════════════════════════════════════════════════════════ */
+
+function isoWeekNum(date) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dow = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dow);
+  const y1 = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil(((d - y1) / 86400000 + 1) / 7);
+}
+
+function weekMondayOf(date) {
+  const d = new Date(date);
+  const dow = d.getDay();
+  d.setDate(d.getDate() - dow + (dow === 0 ? -6 : 1));
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function weekKey(date) {
+  const mon = weekMondayOf(date);
+  const w = isoWeekNum(mon);
+  return `${mon.getFullYear()}-W${String(w).padStart(2, '0')}`;
+}
+
+function weekLabel(key) {
+  const [yr, wStr] = key.split('-W');
+  const w = parseInt(wStr);
+  // reconstruct Monday from ISO week
+  const jan4 = new Date(parseInt(yr), 0, 4);
+  const mon = new Date(jan4);
+  mon.setDate(jan4.getDate() - (jan4.getDay() || 7) + 1 + (w - 1) * 7);
+  const sun = new Date(mon);
+  sun.setDate(mon.getDate() + 6);
+  const M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `Week of ${M[mon.getMonth()]} ${mon.getDate()} – ${M[sun.getMonth()]} ${sun.getDate()}, ${sun.getFullYear()}`;
+}
+
+function stepWeek(key, delta) {
+  const [yr, wStr] = key.split('-W');
+  const w = parseInt(wStr);
+  const jan4 = new Date(parseInt(yr), 0, 4);
+  const mon = new Date(jan4);
+  mon.setDate(jan4.getDate() - (jan4.getDay() || 7) + 1 + (w - 1) * 7);
+  mon.setDate(mon.getDate() + delta * 7);
+  return weekKey(mon);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   STATE
+══════════════════════════════════════════════════════════════ */
+
+const S = {
+  screen:      'loading',
+  currentWeek: weekKey(new Date()),
+  role:        null,
+  rep:         null,
+  region:      null,
+  data:        {},
+  saveStatus:  '',
+  expanded:    {},       // { [repKey]: bool }
+  drillRegion: null,
+  drillRep:    null,
+  loginErr:    ''
+};
+
+let db = null;
+const debTimers = {};
+
+/* ══════════════════════════════════════════════════════════════
+   FIREBASE
+══════════════════════════════════════════════════════════════ */
+
+function initFirebase() {
+  try {
+    if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+    db = firebase.database();
+    return true;
+  } catch(e) {
+    console.error('Firebase init failed', e);
+    return false;
+  }
+}
+
+async function loadAll() {
+  try {
+    const snap = await db.ref(DB_ROOT).get();
+    S.data = snap.val() || {};
+  } catch(e) {
+    console.warn('Firebase load failed, falling back to localStorage', e);
+    try { S.data = JSON.parse(localStorage.getItem(DB_ROOT) || '{}'); } catch {}
+  }
+}
+
+function wkData()           { return S.data[S.currentWeek] || {}; }
+function repData(rk)        { const d = wkData(); return (d.reps && d.reps[rk]) || {}; }
+function wgtData(rgk, rk)   { const d = wkData(); return (d.weightings && d.weightings[rgk] && d.weightings[rgk][rk]) || {}; }
+function actData(rgk)       { const d = wkData(); return (d.actuals && d.actuals[rgk]) || {}; }
+
+async function savePath(path, value) {
+  setSS('saving');
+  try {
+    if (!db) throw new Error('no db');
+    await db.ref(`${DB_ROOT}/${path}`).set(value);
+    try { localStorage.setItem(DB_ROOT, JSON.stringify(S.data)); } catch {}
+    setSS('saved');
+  } catch(e) {
+    console.error('Save failed', e);
+    try { localStorage.setItem(DB_ROOT, JSON.stringify(S.data)); } catch {}
+    setSS('error');
+  }
+}
+
+let _ssClear;
+function setSS(status) {
+  S.saveStatus = status;
+  const el = document.getElementById('saveStatus');
+  if (!el) return;
+  el.className = 'save-status ' + status;
+  const map = { saving: 'Saving…', saved: 'Saved ✓', error: '⚠ SAVE FAILED — contact Spencer' };
+  el.textContent = map[status] || '';
+  clearTimeout(_ssClear);
+  if (status === 'saved') _ssClear = setTimeout(() => setSS(''), 3000);
+}
+
+function debounce(key, fn, ms = 800) {
+  clearTimeout(debTimers[key]);
+  debTimers[key] = setTimeout(fn, ms);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   CALCULATIONS
+══════════════════════════════════════════════════════════════ */
+
+function repCatProj(repName, cat) {
+  const d = repData(sk(repName));
+  const c = (d && d[sk(cat)]) || {};
+  return num(c.amount) * num(c.closePercent) / 100;
+}
+
+function mgrCatProj(regionName, repName, cat) {
+  const d  = repData(sk(repName));
+  const c  = (d && d[sk(cat)]) || {};
+  const w  = wgtData(sk(regionName), sk(repName));
+  const wp = num(w[sk(cat)]);
+  // If manager has entered a weighting, use it; else fall back to rep's close%
+  const pct = wp > 0 ? wp : num(c.closePercent);
+  return num(c.amount) * pct / 100;
+}
+
+function repTotals(repName) {
+  let forecast = 0, proj = 0, coreFcst = 0, coreProj = 0, eduFcst = 0, eduProj = 0;
+  CATEGORIES.forEach(cat => {
+    const d  = repData(sk(repName));
+    const c  = (d && d[sk(cat)]) || {};
+    const a  = num(c.amount);
+    const p  = repCatProj(repName, cat);
+    forecast += a; proj += p;
+    if (CORE_CATS.includes(cat)) { coreFcst += a; coreProj += p; }
+    else                          { eduFcst  += a; eduProj  += p; }
+  });
+  return { forecast, proj, coreFcst, coreProj, eduFcst, eduProj };
+}
+
+function regionTotals(regionName) {
+  const reps = REGIONS[regionName] || [];
+  let repFcst = 0, repCoreProj = 0, mgrCoreProj = 0, repEduProj = 0, mgrEduProj = 0;
+  reps.forEach(rep => {
+    CATEGORIES.forEach(cat => {
+      const d = repData(sk(rep));
+      const c = (d && d[sk(cat)]) || {};
+      repFcst += num(c.amount);
+      if (CORE_CATS.includes(cat)) {
+        repCoreProj += repCatProj(rep, cat);
+        mgrCoreProj += mgrCatProj(regionName, rep, cat);
+      } else {
+        repEduProj += repCatProj(rep, cat);
+        mgrEduProj += mgrCatProj(regionName, rep, cat);
+      }
+    });
+  });
+  const act       = actData(sk(regionName));
+  const actCore   = num(act.core);
+  const actEdu    = num(act.edu);
+  const totalMgr  = mgrCoreProj + mgrEduProj;
+  const coreAtt   = mgrCoreProj > 0 ? actCore / mgrCoreProj * 100 : 0;
+  const totalAtt  = totalMgr    > 0 ? (actCore + actEdu) / totalMgr * 100 : 0;
+  return { repFcst, repCoreProj, mgrCoreProj, repEduProj, mgrEduProj, totalMgr, actCore, actEdu, coreAtt, totalAtt };
+}
+
+function allTotals() {
+  return Object.keys(REGIONS).reduce((acc, r) => {
+    const t = regionTotals(r);
+    acc.repFcst      += t.repFcst;
+    acc.repCoreProj  += t.repCoreProj;
+    acc.mgrCoreProj  += t.mgrCoreProj;
+    acc.repEduProj   += t.repEduProj;
+    acc.mgrEduProj   += t.mgrEduProj;
+    acc.totalMgr     += t.totalMgr;
+    acc.actCore      += t.actCore;
+    acc.actEdu       += t.actEdu;
+    return acc;
+  }, { repFcst:0, repCoreProj:0, mgrCoreProj:0, repEduProj:0, mgrEduProj:0, totalMgr:0, actCore:0, actEdu:0 });
+}
+
+/* ══════════════════════════════════════════════════════════════
+   RENDER ROUTER
+══════════════════════════════════════════════════════════════ */
+
+function render() {
+  document.getElementById('weekLabel').textContent = weekLabel(S.currentWeek);
+  const main = document.getElementById('main');
+  const screens = {
+    loading:       () => main.innerHTML = `<div class="loading-wrap"><div class="spin"></div> Loading…</div>`,
+    roleSelect:    () => renderRoleSelect(main),
+    repSelect:     () => renderRepSelect(main),
+    repView:       () => renderRepView(main),
+    managerLogin:  () => renderManagerLogin(main),
+    managerView:   () => renderManagerView(main),
+    leadershipLogin: () => renderLeadershipLogin(main),
+    leadershipView:  () => renderLeadershipView(main)
+  };
+  (screens[S.screen] || (() => {}))();
+}
+
+/* ══════════════════════════════════════════════════════════════
+   ROLE SELECT
+══════════════════════════════════════════════════════════════ */
+
+function renderRoleSelect(main) {
+  main.innerHTML = `
+    <div class="role-screen fade">
+      <div class="role-hd">
+        <h1>Sales Forecast Portal</h1>
+        <p>Select your role to continue</p>
+      </div>
+      <div class="role-cards">
+        <div class="role-card" onclick="selectRole('rep')">
+          <div class="role-icon">📊</div>
+          <h3>Sales Rep</h3>
+          <p>Enter your weekly forecast and close probabilities</p>
+        </div>
+        <div class="role-card" onclick="selectRole('manager')">
+          <div class="role-icon">👔</div>
+          <h3>Regional Manager</h3>
+          <p>View your region and adjust rep weighting</p>
+        </div>
+        <div class="role-card" onclick="selectRole('leadership')">
+          <div class="role-icon">🏢</div>
+          <h3>Leadership</h3>
+          <p>Full dashboard across all regions</p>
+        </div>
+      </div>
+    </div>`;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   REP SELECT
+══════════════════════════════════════════════════════════════ */
+
+function renderRepSelect(main) {
+  const opts = ALL_REPS.map(r => `<option value="${r}">${r}</option>`).join('');
+  main.innerHTML = `
+    <div class="login-screen fade">
+      <div class="login-card">
+        <h2>Select Your Name</h2>
+        <div class="sub">Choose your name to access your forecast</div>
+        <div class="fld">
+          <label>Your Name</label>
+          <select id="repPicker"><option value="">— Select —</option>${opts}</select>
+        </div>
+        <button class="btn btn-primary" style="width:100%;margin-top:6px" onclick="confirmRepSelect()">Continue →</button>
+        <p class="err-msg" id="repErr">Please select your name.</p>
+        <div class="back-row"><span class="back-link" onclick="switchRole()">← Back</span></div>
+      </div>
+    </div>`;
+}
+
+function confirmRepSelect() {
+  const v = document.getElementById('repPicker').value;
+  if (!v) { document.getElementById('repErr').style.display = 'block'; return; }
+  S.rep = v;
+  S.screen = 'repView';
+  render();
+}
+
+/* ══════════════════════════════════════════════════════════════
+   REP VIEW
+══════════════════════════════════════════════════════════════ */
+
+function renderRepView(main) {
+  const rep  = S.rep;
+  const rk   = sk(rep);
+  const tgt  = TARGETS[rep] || 0;
+  const rd   = repData(rk);
+
+  let totalFcst = 0, totalProj = 0;
+
+  const rows = CATEGORIES.map(cat => {
+    const ck  = sk(cat);
+    const cd  = (rd && rd[ck]) || {};
+    const amt = num(cd.amount);
+    const cp  = num(cd.closePercent);
+    const prj = amt * cp / 100;
+    totalFcst += amt;
+    totalProj += prj;
+    return `
+      <tr>
+        <td><strong>${cat}</strong></td>
+        <td><input type="number" class="ti" placeholder="0" min="0"
+          value="${amt || ''}"
+          data-rk="${rk}" data-ck="${ck}" data-f="amount"
+          oninput="onRepInput(this)"></td>
+        <td><input type="number" class="ti" placeholder="0" min="0" max="100"
+          value="${cp || ''}"
+          data-rk="${rk}" data-ck="${ck}" data-f="closePercent"
+          oninput="onRepInput(this)"></td>
+        <td id="rp_${rk}_${ck}">${prj > 0 ? fmt(prj) : '—'}</td>
+        <td><input type="text" class="ti" placeholder="Add notes…"
+          value="${(cd.notes || '').replace(/"/g,'&quot;')}"
+          data-rk="${rk}" data-ck="${ck}" data-f="notes"
+          oninput="onRepInput(this)"></td>
+      </tr>`;
+  }).join('');
+
+  const projCls = tgt > 0 ? (totalProj >= tgt ? 'vg' : 'vr') : '';
+
+  main.innerHTML = `
+    <div class="cont-md fade">
+      <div class="sec-hd">
+        <div>
+          <h2>${rep}</h2>
+          <div class="sub">
+            ${weekLabel(S.currentWeek)}
+            ${tgt ? ` &nbsp;·&nbsp; Target: <strong style="color:var(--text)">${fmt(tgt)}</strong>` : ''}
+          </div>
+        </div>
+        <span class="back-link" onclick="switchRole()">← Switch Role</span>
+      </div>
+      <div class="tcard">
+        <table>
+          <thead><tr>
+            <th style="min-width:130px">Category</th>
+            <th>Forecast ($)</th>
+            <th>Close %</th>
+            <th>Projected ($)</th>
+            <th style="min-width:200px">Notes</th>
+          </tr></thead>
+          <tbody>
+            ${rows}
+            <tr class="total-row">
+              <td>Total</td>
+              <td>${fmt(totalFcst)}</td>
+              <td>—</td>
+              <td id="rp_total_${rk}" class="${projCls}">${fmt(totalProj)}</td>
+              <td>—</td>
+            </tr>
+            ${tgt ? `<tr class="target-row">
+              <td>Weekly Target</td>
+              <td>${fmt(tgt)}</td><td>—</td><td>${fmt(tgt)}</td><td>—</td>
+            </tr>` : ''}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+function onRepInput(el) {
+  const { rk, ck, f } = el.dataset;
+  const val = f === 'notes' ? el.value : num(el.value);
+
+  // Write into local state tree
+  const w = S.currentWeek;
+  if (!S.data[w])             S.data[w]             = {};
+  if (!S.data[w].reps)        S.data[w].reps        = {};
+  if (!S.data[w].reps[rk])    S.data[w].reps[rk]    = {};
+  if (!S.data[w].reps[rk][ck])S.data[w].reps[rk][ck]= {};
+  S.data[w].reps[rk][ck][f] = val;
+
+  // Live recalculate projected column
+  liveRepCalc(rk);
+
+  // Debounced save — path isolated to this category
+  debounce(`rep_${rk}_${ck}`, () => {
+    savePath(`${w}/reps/${rk}/${ck}`, S.data[w].reps[rk][ck]);
+  });
+}
+
+function liveRepCalc(rk) {
+  const rep = S.rep;
+  if (!rep) return;
+  const rd  = repData(rk);
+  let totalFcst = 0, totalProj = 0;
+  CATEGORIES.forEach(cat => {
+    const ck = sk(cat);
+    const cd = (rd && rd[ck]) || {};
+    const p  = num(cd.amount) * num(cd.closePercent) / 100;
+    totalFcst += num(cd.amount);
+    totalProj += p;
+    const el = document.getElementById(`rp_${rk}_${ck}`);
+    if (el) el.textContent = p > 0 ? fmt(p) : '—';
+  });
+  const tgt = TARGETS[rep] || 0;
+  const tot = document.getElementById(`rp_total_${rk}`);
+  if (tot) {
+    tot.textContent = fmt(totalProj);
+    tot.className   = tgt > 0 ? (totalProj >= tgt ? 'vg' : 'vr') : '';
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   MANAGER LOGIN
+══════════════════════════════════════════════════════════════ */
+
+function renderManagerLogin(main) {
+  const opts = Object.keys(REGIONS).map(r => `<option value="${r}">${r}</option>`).join('');
+  main.innerHTML = `
+    <div class="login-screen fade">
+      <div class="login-card">
+        <h2>Regional Manager</h2>
+        <div class="sub">Select your region and enter your password</div>
+        <div class="fld">
+          <label>Region</label>
+          <select id="rgPicker"><option value="">— Select Region —</option>${opts}</select>
+        </div>
+        <div class="fld">
+          <label>Password</label>
+          <input type="password" id="mgrPwd" placeholder="Enter password"
+            onkeydown="if(event.key==='Enter')confirmManagerLogin()">
+        </div>
+        <button class="btn btn-primary" style="width:100%;margin-top:6px" onclick="confirmManagerLogin()">Login →</button>
+        <p class="err-msg" id="mgrErr">${S.loginErr}</p>
+        <div class="back-row"><span class="back-link" onclick="switchRole()">← Back</span></div>
+      </div>
+    </div>`;
+  if (S.loginErr) document.getElementById('mgrErr').style.display = 'block';
+}
+
+function confirmManagerLogin() {
+  const rg  = document.getElementById('rgPicker').value;
+  const pwd = document.getElementById('mgrPwd').value;
+  const err = document.getElementById('mgrErr');
+  if (!rg) { S.loginErr = 'Please select a region.'; err.textContent = S.loginErr; err.style.display = 'block'; return; }
+  if (PASSWORDS[rg] !== pwd) { S.loginErr = 'Incorrect password. Please try again.'; err.textContent = S.loginErr; err.style.display = 'block'; return; }
+  S.region   = rg;
+  S.loginErr = '';
+  S.expanded = {};
+  S.screen   = 'managerView';
+  render();
+}
+
+/* ══════════════════════════════════════════════════════════════
+   MANAGER VIEW
+══════════════════════════════════════════════════════════════ */
+
+function renderManagerView(main) {
+  const region  = S.region;
+  const rgk     = sk(region);
+  const reps    = REGIONS[region] || [];
+
+  const rows = reps.map(rep => {
+    const rk    = sk(rep);
+    const t     = repTotals(rep);
+    const isExp = S.expanded[rk];
+
+    let mgrCore = 0, mgrEdu = 0;
+    CATEGORIES.forEach(cat => {
+      const p = mgrCatProj(region, rep, cat);
+      CORE_CATS.includes(cat) ? mgrCore += p : mgrEdu += p;
+    });
+    const mgrTot = mgrCore + mgrEdu;
+
+    let detail = '';
+    if (isExp) {
+      const catRows = CATEGORIES.map(cat => {
+        const ck  = sk(cat);
+        const cd  = (repData(rk)[ck]) || {};
+        const amt = num(cd.amount);
+        const rpp = repCatProj(rep, cat);
+        const w   = wgtData(rgk, rk);
+        const wv  = num(w[ck]);
+        const mp  = mgrCatProj(region, rep, cat);
+        return `
+          <tr>
+            <td>${cat}</td>
+            <td>${fmt(amt)}</td>
+            <td>${fmt(rpp)}</td>
+            <td style="white-space:nowrap">
+              <input type="number" class="ti" placeholder="${num(cd.closePercent)||0}" min="0" max="100"
+                value="${wv || ''}"
+                data-rgk="${rgk}" data-rk="${rk}" data-ck="${ck}"
+                oninput="onMgrWgt(this)"
+                style="max-width:65px;display:inline-block">%
+            </td>
+            <td id="mp_${rgk}_${rk}_${ck}">${fmt(mp)}</td>
+          </tr>`;
+      }).join('');
+      detail = `
+        <tr style="background:#0a101e">
+          <td colspan="7" style="padding:0">
+            <table class="rep-detail" style="width:100%">
+              <thead><tr>
+                <th>Category</th><th>Rep Forecast</th><th>Rep Projected</th>
+                <th>Mgr Close %</th><th>Mgr Projected</th>
+              </tr></thead>
+              <tbody>${catRows}</tbody>
+            </table>
+          </td>
+        </tr>`;
+    }
+
+    return `
+      <tr>
+        <td>
+          <button class="xbtn" onclick="toggleExp('${rk}')">
+            ${isExp ? '▾' : '▸'} ${rep}
+          </button>
+        </td>
+        <td>${fmt(t.forecast)}</td>
+        <td>${fmt(t.coreProj)}</td>
+        <td id="mc_${rk}">${fmt(mgrCore)}</td>
+        <td>${fmt(t.eduProj)}</td>
+        <td id="me_${rk}">${fmt(mgrEdu)}</td>
+        <td id="mt_${rk}">${fmt(mgrTot)}</td>
+      </tr>${detail}`;
+  }).join('');
+
+  const rt = regionTotals(region);
+
+  main.innerHTML = `
+    <div class="cont fade">
+      <div class="sec-hd">
+        <div>
+          <h2>${region} Region</h2>
+          <div class="sub">${weekLabel(S.currentWeek)}</div>
+        </div>
+        <span class="back-link" onclick="switchRole()">← Switch Role</span>
+      </div>
+      <div class="tcard">
+        <table>
+          <thead><tr>
+            <th>Rep</th><th>Rep Forecast</th><th>Rep Core Proj</th>
+            <th>Mgr Core Proj</th><th>Rep Edu Proj</th><th>Mgr Edu Proj</th>
+            <th>Total Mgr Proj</th>
+          </tr></thead>
+          <tbody>
+            ${rows}
+            <tr class="total-row">
+              <td>Region Total</td>
+              <td>${fmt(rt.repFcst)}</td>
+              <td>${fmt(rt.repCoreProj)}</td>
+              <td>${fmt(rt.mgrCoreProj)}</td>
+              <td>${fmt(rt.repEduProj)}</td>
+              <td>${fmt(rt.mgrEduProj)}</td>
+              <td>${fmt(rt.totalMgr)}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+function toggleExp(rk) {
+  S.expanded[rk] = !S.expanded[rk];
+  renderManagerView(document.getElementById('main'));
+}
+
+function onMgrWgt(el) {
+  const { rgk, rk, ck } = el.dataset;
+  const val = num(el.value);
+  const w   = S.currentWeek;
+
+  if (!S.data[w])                         S.data[w]                         = {};
+  if (!S.data[w].weightings)              S.data[w].weightings              = {};
+  if (!S.data[w].weightings[rgk])         S.data[w].weightings[rgk]         = {};
+  if (!S.data[w].weightings[rgk][rk])     S.data[w].weightings[rgk][rk]     = {};
+  S.data[w].weightings[rgk][rk][ck] = val;
+
+  // Live update
+  const mp  = document.getElementById(`mp_${rgk}_${rk}_${ck}`);
+  if (mp) {
+    const rd = repData(rk);
+    const cd = (rd && rd[ck]) || {};
+    const p  = num(cd.amount) * (val > 0 ? val : num(cd.closePercent)) / 100;
+    mp.textContent = fmt(p);
+  }
+  // Update rep totals row
+  const repName = ALL_REPS.find(r => sk(r) === rk);
+  if (repName) {
+    let mc = 0, me = 0;
+    CATEGORIES.forEach(cat => {
+      const p = mgrCatProj(S.region, repName, cat);
+      CORE_CATS.includes(cat) ? mc += p : me += p;
+    });
+    const mcEl = document.getElementById(`mc_${rk}`);
+    const meEl = document.getElementById(`me_${rk}`);
+    const mtEl = document.getElementById(`mt_${rk}`);
+    if (mcEl) mcEl.textContent = fmt(mc);
+    if (meEl) meEl.textContent = fmt(me);
+    if (mtEl) mtEl.textContent = fmt(mc + me);
+  }
+
+  debounce(`mgr_${rgk}_${rk}_${ck}`, () => {
+    savePath(`${w}/weightings/${rgk}/${rk}/${ck}`, val);
+  });
+}
+
+/* ══════════════════════════════════════════════════════════════
+   LEADERSHIP LOGIN
+══════════════════════════════════════════════════════════════ */
+
+function renderLeadershipLogin(main) {
+  main.innerHTML = `
+    <div class="login-screen fade">
+      <div class="login-card">
+        <h2>Leadership Dashboard</h2>
+        <div class="sub">Enter the leadership password to continue</div>
+        <div class="fld">
+          <label>Password</label>
+          <input type="password" id="ldPwd" placeholder="Enter password"
+            onkeydown="if(event.key==='Enter')confirmLeadershipLogin()">
+        </div>
+        <button class="btn btn-primary" style="width:100%;margin-top:6px" onclick="confirmLeadershipLogin()">Login →</button>
+        <p class="err-msg" id="ldErr">${S.loginErr}</p>
+        <div class="back-row"><span class="back-link" onclick="switchRole()">← Back</span></div>
+      </div>
+    </div>`;
+  if (S.loginErr) document.getElementById('ldErr').style.display = 'block';
+}
+
+function confirmLeadershipLogin() {
+  const pwd = document.getElementById('ldPwd').value;
+  const err = document.getElementById('ldErr');
+  if (PASSWORDS['Leadership'] !== pwd) {
+    S.loginErr = 'Incorrect password. Please try again.';
+    err.textContent = S.loginErr;
+    err.style.display = 'block';
+    return;
+  }
+  S.loginErr   = '';
+  S.drillRegion = null;
+  S.drillRep    = null;
+  S.screen      = 'leadershipView';
+  render();
+}
+
+/* ══════════════════════════════════════════════════════════════
+   LEADERSHIP — MAIN DASHBOARD
+══════════════════════════════════════════════════════════════ */
+
+function renderLeadershipView(main) {
+  if (S.drillRep)    { renderRepDrill(main);    return; }
+  if (S.drillRegion) { renderRegionDrill(main); return; }
+
+  const at = allTotals();
+  const grandCoreAtt  = at.mgrCoreProj > 0 ? at.actCore / at.mgrCoreProj * 100 : 0;
+  const grandTotalAtt = at.totalMgr    > 0 ? (at.actCore + at.actEdu) / at.totalMgr * 100 : 0;
+
+  const metrics = [
+    { l: 'Total Rep Forecast',  v: fmt(at.repFcst) },
+    { l: 'Rep Core Projected',  v: fmt(at.repCoreProj) },
+    { l: 'Mgr Core Forecast',   v: fmt(at.mgrCoreProj) },
+    { l: 'Rep Edu Projected',   v: fmt(at.repEduProj) },
+    { l: 'Mgr Edu Forecast',    v: fmt(at.mgrEduProj) },
+    { l: 'Total Mgr Forecast',  v: fmt(at.totalMgr) },
+    { l: 'Actual Closed',       v: fmt(at.actCore + at.actEdu) }
+  ];
+
+  const metCards = metrics.map(m => `
+    <div class="metric-card">
+      <div class="ml">${m.l}</div>
+      <div class="mv">${m.v}</div>
+    </div>`).join('');
+
+  const regionRows = Object.keys(REGIONS).map(region => {
+    const rt  = regionTotals(region);
+    const rgk = sk(region);
+    const act = actData(rgk);
+
+    const cAtt = rt.mgrCoreProj > 0 ? `<span class="${rt.coreAtt >= 100 ? 'att-g' : 'att-r'}">${rt.coreAtt.toFixed(1)}%</span>` : '—';
+    const tAtt = rt.totalMgr    > 0 ? `<span class="${rt.totalAtt >= 100 ? 'att-g' : 'att-r'}">${rt.totalAtt.toFixed(1)}%</span>` : '—';
+
+    return `
+      <tr>
+        <td><button class="xbtn" onclick="drillRegion('${region}')">${region}</button></td>
+        <td>${fmt(rt.repFcst)}</td>
+        <td>${fmt(rt.repCoreProj)}</td>
+        <td>${fmt(rt.mgrCoreProj)}</td>
+        <td>${fmt(rt.repEduProj)}</td>
+        <td>${fmt(rt.mgrEduProj)}</td>
+        <td>${fmt(rt.totalMgr)}</td>
+        <td><input type="number" class="ti" placeholder="0" min="0"
+          value="${num(act.core)||''}"
+          data-rgk="${rgk}" data-t="core" oninput="onActual(this)"
+          style="max-width:110px"></td>
+        <td><input type="number" class="ti" placeholder="0" min="0"
+          value="${num(act.edu)||''}"
+          data-rgk="${rgk}" data-t="edu" oninput="onActual(this)"
+          style="max-width:110px"></td>
+        <td>${cAtt}</td>
+        <td>${tAtt}</td>
+      </tr>`;
+  }).join('');
+
+  main.innerHTML = `
+    <div class="cont fade">
+      <div class="sec-hd">
+        <div>
+          <h2>Leadership Dashboard</h2>
+          <div class="sub">${weekLabel(S.currentWeek)}</div>
+        </div>
+        <span class="back-link" onclick="switchRole()">← Switch Role</span>
+      </div>
+
+      <div class="metric-grid">${metCards}</div>
+
+      <div class="tcard" style="overflow-x:auto">
+        <table style="min-width:1060px">
+          <thead><tr>
+            <th>Region</th>
+            <th>Rep Forecast</th>
+            <th>Rep Core Proj</th>
+            <th>Mgr Core Fcst</th>
+            <th>Rep Edu Proj</th>
+            <th>Mgr Edu Fcst</th>
+            <th>Total Mgr Fcst</th>
+            <th>Actual Core $</th>
+            <th>Actual Edu $</th>
+            <th>Core Attain %</th>
+            <th>Total Attain %</th>
+          </tr></thead>
+          <tbody>
+            ${regionRows}
+            <tr class="total-row">
+              <td>Grand Total</td>
+              <td>${fmt(at.repFcst)}</td>
+              <td>${fmt(at.repCoreProj)}</td>
+              <td>${fmt(at.mgrCoreProj)}</td>
+              <td>${fmt(at.repEduProj)}</td>
+              <td>${fmt(at.mgrEduProj)}</td>
+              <td>${fmt(at.totalMgr)}</td>
+              <td>${fmt(at.actCore)}</td>
+              <td>${fmt(at.actEdu)}</td>
+              <td>${grandCoreAtt  > 0 ? `<span class="${grandCoreAtt  >= 100 ? 'att-g':'att-r'}">${grandCoreAtt.toFixed(1)}%</span>`  : '—'}</td>
+              <td>${grandTotalAtt > 0 ? `<span class="${grandTotalAtt >= 100 ? 'att-g':'att-r'}">${grandTotalAtt.toFixed(1)}%</span>` : '—'}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+function onActual(el) {
+  const { rgk, t } = el.dataset;
+  const val = num(el.value);
+  const w   = S.currentWeek;
+
+  if (!S.data[w])               S.data[w]               = {};
+  if (!S.data[w].actuals)       S.data[w].actuals       = {};
+  if (!S.data[w].actuals[rgk])  S.data[w].actuals[rgk]  = {};
+  S.data[w].actuals[rgk][t] = val;
+
+  debounce(`act_${rgk}_${t}`, () => {
+    savePath(`${w}/actuals/${rgk}/${t}`, val);
+  });
+}
+
+/* ══════════════════════════════════════════════════════════════
+   LEADERSHIP — REGION DRILLDOWN
+══════════════════════════════════════════════════════════════ */
+
+function drillRegion(region) {
+  S.drillRegion = region;
+  S.drillRep    = null;
+  render();
+}
+
+function renderRegionDrill(main) {
+  const region = S.drillRegion;
+  const reps   = REGIONS[region] || [];
+
+  const rows = reps.map(rep => {
+    const t = repTotals(rep);
+    let mc = 0, me = 0;
+    CATEGORIES.forEach(cat => {
+      const p = mgrCatProj(region, rep, cat);
+      CORE_CATS.includes(cat) ? mc += p : me += p;
+    });
+    const tgt = TARGETS[rep];
+    return `
+      <tr>
+        <td><button class="xbtn" onclick="drillRep('${rep}','${region}')">${rep}</button></td>
+        <td>${fmt(t.forecast)}</td>
+        <td>${fmt(t.coreProj)}</td>
+        <td>${fmt(mc)}</td>
+        <td>${fmt(t.eduProj)}</td>
+        <td>${fmt(me)}</td>
+        <td>${fmt(mc + me)}</td>
+        <td>${tgt ? fmt(tgt) : '—'}</td>
+      </tr>`;
+  }).join('');
+
+  const rt = regionTotals(region);
+
+  main.innerHTML = `
+    <div class="cont fade">
+      <div class="sec-hd">
+        <div>
+          <span class="back-link" onclick="S.drillRegion=null;render()">← Back to Overview</span>
+          <h2 style="margin-top:8px">${region} — Rep Breakdown</h2>
+          <div class="sub">${weekLabel(S.currentWeek)}</div>
+        </div>
+      </div>
+      <div class="tcard">
+        <table>
+          <thead><tr>
+            <th>Rep</th><th>Rep Forecast</th><th>Rep Core Proj</th>
+            <th>Mgr Core Proj</th><th>Rep Edu Proj</th><th>Mgr Edu Proj</th>
+            <th>Total Mgr Proj</th><th>Weekly Target</th>
+          </tr></thead>
+          <tbody>
+            ${rows}
+            <tr class="total-row">
+              <td>Region Total</td>
+              <td>${fmt(rt.repFcst)}</td>
+              <td>${fmt(rt.repCoreProj)}</td>
+              <td>${fmt(rt.mgrCoreProj)}</td>
+              <td>${fmt(rt.repEduProj)}</td>
+              <td>${fmt(rt.mgrEduProj)}</td>
+              <td>${fmt(rt.totalMgr)}</td>
+              <td>—</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   LEADERSHIP — REP DRILLDOWN
+══════════════════════════════════════════════════════════════ */
+
+function drillRep(rep, region) {
+  S.drillRep    = rep;
+  S.drillRegion = region;
+  render();
+}
+
+function renderRepDrill(main) {
+  const rep    = S.drillRep;
+  const region = S.drillRegion;
+  const rk     = sk(rep);
+  const rgk    = sk(region);
+  const rd     = repData(rk);
+  const tgt    = TARGETS[rep];
+
+  const rows = CATEGORIES.map(cat => {
+    const ck  = sk(cat);
+    const cd  = (rd && rd[ck]) || {};
+    const amt = num(cd.amount);
+    const cp  = num(cd.closePercent);
+    const rpp = amt * cp / 100;
+    const w   = wgtData(rgk, rk);
+    const wv  = num(w[ck]);
+    const mp  = mgrCatProj(region, rep, cat);
+    const notes = cd.notes || '—';
+    return `
+      <tr>
+        <td>${cat}</td>
+        <td>${fmt(amt)}</td>
+        <td>${cp ? cp + '%' : '—'}</td>
+        <td>${fmt(rpp)}</td>
+        <td>${wv ? wv + '%' : '<span style="color:var(--muted);font-size:11px">Using rep %</span>'}</td>
+        <td>${fmt(mp)}</td>
+        <td style="color:var(--muted)">${notes}</td>
+      </tr>`;
+  }).join('');
+
+  const t = repTotals(rep);
+  let mc = 0, me = 0;
+  CATEGORIES.forEach(cat => {
+    const p = mgrCatProj(region, rep, cat);
+    CORE_CATS.includes(cat) ? mc += p : me += p;
+  });
+
+  main.innerHTML = `
+    <div class="cont-md fade">
+      <div class="sec-hd">
+        <div>
+          <span class="back-link" onclick="S.drillRep=null;render()">← Back to ${region}</span>
+          <h2 style="margin-top:8px">${rep} — Category Breakdown</h2>
+          <div class="sub">
+            ${weekLabel(S.currentWeek)}
+            ${tgt ? ` &nbsp;·&nbsp; Target: <strong style="color:var(--text)">${fmt(tgt)}</strong>` : ''}
+          </div>
+        </div>
+      </div>
+      <div class="tcard">
+        <table>
+          <thead><tr>
+            <th>Category</th><th>Forecast</th><th>Rep Close %</th>
+            <th>Rep Projected</th><th>Mgr Close %</th><th>Mgr Projected</th><th>Notes</th>
+          </tr></thead>
+          <tbody>
+            ${rows}
+            <tr class="total-row">
+              <td>Total</td>
+              <td>${fmt(t.forecast)}</td>
+              <td>—</td>
+              <td>${fmt(t.proj)}</td>
+              <td>—</td>
+              <td>${fmt(mc + me)}</td>
+              <td>—</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   NAVIGATION
+══════════════════════════════════════════════════════════════ */
+
+function selectRole(role) {
+  S.role     = role;
+  S.loginErr = '';
+  S.screen   = role === 'rep' ? 'repSelect' : role === 'manager' ? 'managerLogin' : 'leadershipLogin';
+  render();
+}
+
+function switchRole() {
+  S.role = S.rep = S.region = null;
+  S.loginErr = S.drillRegion = S.drillRep = null;
+  S.expanded = {};
+  S.screen   = 'roleSelect';
+  render();
+}
+
+function changeWeek(delta) {
+  S.currentWeek = stepWeek(S.currentWeek, delta);
+  render();
+}
+
+/* ══════════════════════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════════════════════ */
+
+async function init() {
+  S.screen = 'loading';
+  render();
+  initFirebase();
+  await loadAll();
+  S.screen = 'roleSelect';
+  render();
+}
+
+init();
+</script>
+</body>
+</html>

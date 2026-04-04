@@ -543,13 +543,14 @@ function repCatProj(repName, cat) {
 }
 
 function mgrCatProj(regionName, repName, cat) {
-  const d  = repData(sk(repName));
-  const c  = (d && d[sk(cat)]) || {};
-  const w  = wgtData(sk(regionName), sk(repName));
-  const wp = num(w[sk(cat)]);
-  // If manager has entered a weighting, use it; else fall back to rep's close%
-  const pct = wp > 0 ? wp : num(c.closePercent);
-  return num(c.amount) * pct / 100;
+  const d       = repData(sk(repName));
+  const c       = (d && d[sk(cat)]) || {};
+  const w       = wgtData(sk(regionName), sk(repName));
+  const wp      = num(w[sk(cat)]);
+  const repProj = num(c.amount) * num(c.closePercent) / 100;
+  // Mgr Projected = Rep Projected × (Mgr% / 100)
+  // If no mgr weighting entered, fall back to rep projected as-is
+  return wp > 0 ? repProj * wp / 100 : repProj;
 }
 
 function repTotals(repName) {
@@ -1004,9 +1005,10 @@ function onMgrWgt(el) {
   // Live update
   const mp  = document.getElementById(`mp_${rgk}_${rk}_${ck}`);
   if (mp) {
-    const rd = repData(rk);
-    const cd = (rd && rd[ck]) || {};
-    const p  = num(cd.amount) * (val > 0 ? val : num(cd.closePercent)) / 100;
+    const rd      = repData(rk);
+    const cd      = (rd && rd[ck]) || {};
+    const repProj = num(cd.amount) * num(cd.closePercent) / 100;
+    const p       = val > 0 ? repProj * val / 100 : repProj;
     mp.textContent = fmt(p);
   }
   // Update rep totals row

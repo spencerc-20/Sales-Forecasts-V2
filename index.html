@@ -630,26 +630,47 @@ function renderRoleSelect(main) {
 ══════════════════════════════════════════════════════════════ */
 
 function renderRepSelect(main) {
-  const opts = ALL_REPS.map(r => `<option value="${r}">${r}</option>`).join('');
+  const regionOpts = Object.keys(REGIONS).map(r => `<option value="${r}">${r}</option>`).join('');
   main.innerHTML = `
     <div class="login-screen fade">
       <div class="login-card">
         <h2>Select Your Name</h2>
-        <div class="sub">Choose your name to access your forecast</div>
+        <div class="sub">Choose your region, then select your name</div>
         <div class="fld">
+          <label>Region</label>
+          <select id="repRegionPicker" onchange="onRepRegionChange()">
+            <option value="">— Select Region —</option>${regionOpts}
+          </select>
+        </div>
+        <div class="fld" id="repNameFld" style="display:none">
           <label>Your Name</label>
-          <select id="repPicker"><option value="">— Select —</option>${opts}</select>
+          <select id="repPicker"><option value="">— Select —</option></select>
         </div>
         <button class="btn btn-primary" style="width:100%;margin-top:6px" onclick="confirmRepSelect()">Continue →</button>
-        <p class="err-msg" id="repErr">Please select your name.</p>
+        <p class="err-msg" id="repErr">Please select your region and name.</p>
         <div class="back-row"><span class="back-link" onclick="switchRole()">← Back</span></div>
       </div>
     </div>`;
 }
 
+function onRepRegionChange() {
+  const region = document.getElementById('repRegionPicker').value;
+  const nameFld = document.getElementById('repNameFld');
+  const repPicker = document.getElementById('repPicker');
+  document.getElementById('repErr').style.display = 'none';
+  if (!region) { nameFld.style.display = 'none'; return; }
+  const reps = REGIONS[region] || [];
+  repPicker.innerHTML = `<option value="">— Select —</option>` +
+    reps.map(r => `<option value="${r}">${r}</option>`).join('');
+  nameFld.style.display = 'block';
+}
+
 function confirmRepSelect() {
+  const region = document.getElementById('repRegionPicker').value;
   const v = document.getElementById('repPicker').value;
-  if (!v) { document.getElementById('repErr').style.display = 'block'; return; }
+  const err = document.getElementById('repErr');
+  if (!region) { err.textContent = 'Please select your region.'; err.style.display = 'block'; return; }
+  if (!v) { err.textContent = 'Please select your name.'; err.style.display = 'block'; return; }
   S.rep = v;
   S.screen = 'repView';
   render();

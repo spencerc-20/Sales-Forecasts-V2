@@ -223,6 +223,32 @@ input.ti[type="number"] { text-align: right; }
 .metric-card .ml { font-size: 10px; font-weight: 700; text-transform: uppercase;
   letter-spacing: .07em; color: var(--muted); margin-bottom: 7px; }
 .metric-card .mv { font-size: 22px; font-weight: 700; }
+/* highlighted forecast cards */
+.metric-card.mc-highlight {
+  background: rgba(196,18,48,.1);
+  border-color: rgba(196,18,48,.45);
+}
+.metric-card.mc-highlight .ml { color: rgba(196,18,48,.8); }
+.metric-card.mc-highlight .mv { color: #F87171; }
+/* actual closed status cards */
+.metric-card.mc-green {
+  background: rgba(22,163,74,.12);
+  border-color: rgba(22,163,74,.45);
+}
+.metric-card.mc-green .ml { color: rgba(74,222,128,.7); }
+.metric-card.mc-green .mv { color: #4ADE80; }
+.metric-card.mc-amber {
+  background: rgba(217,119,6,.12);
+  border-color: rgba(217,119,6,.45);
+}
+.metric-card.mc-amber .ml { color: rgba(217,119,6,.8); }
+.metric-card.mc-amber .mv { color: #FCD34D; }
+.metric-card.mc-red {
+  background: rgba(220,38,38,.12);
+  border-color: rgba(220,38,38,.45);
+}
+.metric-card.mc-red .ml { color: rgba(248,113,113,.7); }
+.metric-card.mc-red .mv { color: #F87171; }
 
 /* ─── COLORS ───────────────────────────────────────────────── */
 .vg { color: #4ADE80; font-weight: 700; }
@@ -1048,18 +1074,27 @@ function renderLeadershipView(main) {
   const grandCoreAtt  = at.mgrCoreProj > 0 ? at.actCore / at.mgrCoreProj * 100 : 0;
   const grandTotalAtt = at.totalMgr    > 0 ? (at.actCore + at.actEdu) / at.totalMgr * 100 : 0;
 
+  const actualTotal = at.actCore + at.actEdu;
+  let actualCardCls = '';
+  if (at.totalMgr > 0) {
+    const ratio = actualTotal / at.totalMgr;
+    if      (ratio >= 1.0)  actualCardCls = 'mc-green';
+    else if (ratio >= 0.9)  actualCardCls = 'mc-amber';
+    else                    actualCardCls = 'mc-red';
+  }
+
   const metrics = [
-    { l: 'Total Rep Forecast',  v: fmt(at.repFcst) },
-    { l: 'Rep Core Projected',  v: fmt(at.repCoreProj) },
-    { l: 'Mgr Core Forecast',   v: fmt(at.mgrCoreProj) },
-    { l: 'Rep Edu Projected',   v: fmt(at.repEduProj) },
-    { l: 'Mgr Edu Forecast',    v: fmt(at.mgrEduProj) },
-    { l: 'Total Mgr Forecast',  v: fmt(at.totalMgr) },
-    { l: 'Actual Closed',       v: fmt(at.actCore + at.actEdu) }
+    { l: 'Total Rep Forecast',  v: fmt(at.repFcst),      cls: 'mc-highlight' },
+    { l: 'Rep Core Projected',  v: fmt(at.repCoreProj),  cls: '' },
+    { l: 'Mgr Core Forecast',   v: fmt(at.mgrCoreProj),  cls: '' },
+    { l: 'Rep Edu Projected',   v: fmt(at.repEduProj),   cls: '' },
+    { l: 'Mgr Edu Forecast',    v: fmt(at.mgrEduProj),   cls: '' },
+    { l: 'Total Mgr Forecast',  v: fmt(at.totalMgr),     cls: 'mc-highlight' },
+    { l: 'Actual Closed',       v: fmt(actualTotal),     cls: actualCardCls }
   ];
 
   const metCards = metrics.map(m => `
-    <div class="metric-card">
+    <div class="metric-card ${m.cls}">
       <div class="ml">${m.l}</div>
       <div class="mv">${m.v}</div>
     </div>`).join('');

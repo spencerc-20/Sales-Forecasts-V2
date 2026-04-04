@@ -574,20 +574,30 @@ function repTotals(repName) {
   return { forecast, proj, coreFcst, coreProj, eduFcst, eduProj };
 }
 
+function repHasMgrWeighting(regionName, repName) {
+  const w = wgtData(sk(regionName), sk(repName));
+  return CATEGORIES.some(cat => num(w[sk(cat)]) > 0);
+}
+
+function regionHasMgrWeighting(regionName) {
+  return (REGIONS[regionName] || []).some(rep => repHasMgrWeighting(regionName, rep));
+}
+
 function regionTotals(regionName) {
   const reps = REGIONS[regionName] || [];
   let repFcst = 0, repCoreProj = 0, mgrCoreProj = 0, repEduProj = 0, mgrEduProj = 0;
   reps.forEach(rep => {
+    const hasWgt = repHasMgrWeighting(regionName, rep);
     CATEGORIES.forEach(cat => {
       const d = repData(sk(rep));
       const c = (d && d[sk(cat)]) || {};
       repFcst += num(c.amount);
       if (CORE_CATS.includes(cat)) {
         repCoreProj += repCatProj(rep, cat);
-        mgrCoreProj += mgrCatProj(regionName, rep, cat);
+        if (hasWgt) mgrCoreProj += mgrCatProj(regionName, rep, cat);
       } else {
         repEduProj += repCatProj(rep, cat);
-        mgrEduProj += mgrCatProj(regionName, rep, cat);
+        if (hasWgt) mgrEduProj += mgrCatProj(regionName, rep, cat);
       }
     });
   });
@@ -1091,14 +1101,22 @@ function renderLeadershipView(main) {
   const grandTotalAtt = at.totalMgr    > 0 ? (at.actCore + at.actEdu) / at.totalMgr * 100 : 0;
 
   const actualTotal = at.actCore + at.actEdu;
+  let actualCardCls = 'mc-white';
+  if (at.totalMgr > 0) {
+    const ratio = actualTotal / at.totalMgr;
+    if      (ratio >= 1.0) actualCardCls = 'mc-green';
+    else if (ratio >= 0.9) actualCardCls = 'mc-amber';
+    else                   actualCardCls = 'mc-red';
+  }
+
   const metrics = [
     { l: 'Total Rep Forecast',  v: fmt(at.repFcst),      cls: 'mc-white' },
     { l: 'Rep Core Projected',  v: fmt(at.repCoreProj),  cls: '' },
     { l: 'Mgr Core Forecast',   v: fmt(at.mgrCoreProj),  cls: '' },
     { l: 'Rep Edu Projected',   v: fmt(at.repEduProj),   cls: '' },
     { l: 'Mgr Edu Forecast',    v: fmt(at.mgrEduProj),   cls: '' },
-    { l: 'Total Mgr Forecast',  v: fmt(at.totalMgr),     cls: 'mc-highlight' },
-    { l: 'Actual Closed',       v: fmt(actualTotal),     cls: 'mc-white' }
+    { l: 'Total Mgr Forecast',  v: fmt(at.totalMgr),     cls: 'mc-white' },
+    { l: 'Actual Closed',       v: fmt(actualTotal),     cls: actualCardCls }
   ];
 
   const metCards = metrics.map(m => `
@@ -1108,22 +1126,26 @@ function renderLeadershipView(main) {
     </div>`).join('');
 
   const regionRows = Object.keys(REGIONS).map(region => {
-    const rt  = regionTotals(region);
-    const rgk = sk(region);
-    const act = actData(rgk);
+    const rt     = regionTotals(region);
+    const rgk    = sk(region);
+    const act    = actData(rgk);
+    const hasWgt = regionHasMgrWeighting(region);
 
-    const cAtt = rt.mgrCoreProj > 0 ? `<span class="${rt.coreAtt >= 100 ? 'att-g' : 'att-r'}">${rt.coreAtt.toFixed(1)}%</span>` : '—';
-    const tAtt = rt.totalMgr    > 0 ? `<span class="${rt.totalAtt >= 100 ? 'att-g' : 'att-r'}">${rt.totalAtt.toFixed(1)}%</span>` : '—';
+    const mgrCore  = hasWgt ? fmt(rt.mgrCoreProj) : '—';
+    const mgrEdu   = hasWgt ? fmt(rt.mgrEduProj)  : '—';
+    const mgrTotal = hasWgt ? fmt(rt.totalMgr)     : '—';
+    const cAtt = (hasWgt && rt.mgrCoreProj > 0) ? `<span class="${rt.coreAtt >= 100 ? 'att-g' : 'att-r'}">${rt.coreAtt.toFixed(1)}%</span>` : '—';
+    const tAtt = (hasWgt && rt.totalMgr    > 0) ? `<span class="${rt.totalAtt >= 100 ? 'att-g' : 'att-r'}">${rt.totalAtt.toFixed(1)}%</span>` : '—';
 
     return `
       <tr>
         <td><button class="xbtn" onclick="drillRegion('${region}')">${region}</button></td>
         <td>${fmt(rt.repFcst)}</td>
         <td>${fmt(rt.repCoreProj)}</td>
-        <td>${fmt(rt.mgrCoreProj)}</td>
+        <td>${mgrCore}</td>
         <td>${fmt(rt.repEduProj)}</td>
-        <td>${fmt(rt.mgrEduProj)}</td>
-        <td>${fmt(rt.totalMgr)}</td>
+        <td>${mgrEdu}</td>
+        <td>${mgrTotal}</td>
         <td><input type="number" class="ti" placeholder="0" min="0"
           value="${num(act.core)||''}"
           data-rgk="${rgk}" data-t="core" oninput="onActual(this)"
@@ -1312,28 +1334,31 @@ function renderRegionDrill(main) {
   const reps   = REGIONS[region] || [];
 
   const rows = reps.map(rep => {
-    const t = repTotals(rep);
+    const t      = repTotals(rep);
+    const hasWgt = repHasMgrWeighting(region, rep);
     let mc = 0, me = 0;
-    CATEGORIES.forEach(cat => {
-      const p = mgrCatProj(region, rep, cat);
-      CORE_CATS.includes(cat) ? mc += p : me += p;
-    });
+    if (hasWgt) {
+      CATEGORIES.forEach(cat => {
+        const p = mgrCatProj(region, rep, cat);
+        CORE_CATS.includes(cat) ? mc += p : me += p;
+      });
+    }
     const mgrTotal = mc + me;
     const tgt = TARGETS[rep];
 
-    // Total Mgr Proj: green if >= target, red if below, white if no target
+    // Total Mgr Proj: green if >= target, red if below; blank if no weighting entered
     let mgrCls = 'col-white';
-    if (tgt) mgrCls = mgrTotal >= tgt ? 'col-green' : 'col-red';
+    if (hasWgt && tgt) mgrCls = mgrTotal >= tgt ? 'col-green' : 'col-red';
 
     return `
       <tr>
         <td><button class="xbtn" onclick="drillRep('${rep}','${region}')">${rep}</button></td>
         <td class="col-white">${fmt(t.forecast)}</td>
         <td>${fmt(t.coreProj)}</td>
-        <td>${fmt(mc)}</td>
+        <td>${hasWgt ? fmt(mc) : '—'}</td>
         <td>${fmt(t.eduProj)}</td>
-        <td>${fmt(me)}</td>
-        <td class="${mgrCls}">${fmt(mgrTotal)}</td>
+        <td>${hasWgt ? fmt(me) : '—'}</td>
+        <td class="${hasWgt ? mgrCls : ''}">${hasWgt ? fmt(mgrTotal) : '—'}</td>
         <td>${tgt ? fmt(tgt) : '—'}</td>
       </tr>`;
   }).join('');

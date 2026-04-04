@@ -223,7 +223,14 @@ input.ti[type="number"] { text-align: right; }
 .metric-card .ml { font-size: 10px; font-weight: 700; text-transform: uppercase;
   letter-spacing: .07em; color: var(--muted); margin-bottom: 7px; }
 .metric-card .mv { font-size: 22px; font-weight: 700; }
-/* highlighted forecast cards */
+/* white highlight cards */
+.metric-card.mc-white {
+  background: rgba(255,255,255,.07);
+  border-color: rgba(255,255,255,.35);
+}
+.metric-card.mc-white .ml { color: rgba(255,255,255,.7); }
+.metric-card.mc-white .mv { color: #FFFFFF; }
+/* red highlight cards (Total Mgr Forecast) */
 .metric-card.mc-highlight {
   background: rgba(196,18,48,.1);
   border-color: rgba(196,18,48,.45);
@@ -1084,22 +1091,14 @@ function renderLeadershipView(main) {
   const grandTotalAtt = at.totalMgr    > 0 ? (at.actCore + at.actEdu) / at.totalMgr * 100 : 0;
 
   const actualTotal = at.actCore + at.actEdu;
-  let actualCardCls = '';
-  if (at.totalMgr > 0) {
-    const ratio = actualTotal / at.totalMgr;
-    if      (ratio >= 1.0)  actualCardCls = 'mc-green';
-    else if (ratio >= 0.9)  actualCardCls = 'mc-amber';
-    else                    actualCardCls = 'mc-red';
-  }
-
   const metrics = [
-    { l: 'Total Rep Forecast',  v: fmt(at.repFcst),      cls: 'mc-highlight' },
+    { l: 'Total Rep Forecast',  v: fmt(at.repFcst),      cls: 'mc-white' },
     { l: 'Rep Core Projected',  v: fmt(at.repCoreProj),  cls: '' },
     { l: 'Mgr Core Forecast',   v: fmt(at.mgrCoreProj),  cls: '' },
     { l: 'Rep Edu Projected',   v: fmt(at.repEduProj),   cls: '' },
     { l: 'Mgr Edu Forecast',    v: fmt(at.mgrEduProj),   cls: '' },
     { l: 'Total Mgr Forecast',  v: fmt(at.totalMgr),     cls: 'mc-highlight' },
-    { l: 'Actual Closed',       v: fmt(actualTotal),     cls: actualCardCls }
+    { l: 'Actual Closed',       v: fmt(actualTotal),     cls: 'mc-white' }
   ];
 
   const metCards = metrics.map(m => `

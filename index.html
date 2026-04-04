@@ -254,9 +254,12 @@ input.ti[type="number"] { text-align: right; }
 .vg { color: #4ADE80; font-weight: 700; }
 .vr { color: #F87171; font-weight: 700; }
 /* drilldown column highlights */
-.col-white { color: #FFFFFF; font-weight: 700; }
-.col-green { color: #4ADE80; font-weight: 700; }
-.col-red   { color: #F87171; font-weight: 700; }
+.col-white { color: #FFFFFF; font-weight: 700; background: rgba(255,255,255,0.07) !important; }
+.col-green { color: #4ADE80; font-weight: 700; background: rgba(22,163,74,0.15)  !important; }
+.col-red   { color: #F87171; font-weight: 700; background: rgba(220,38,38,0.15)   !important; }
+th.col-white { color: #FFFFFF; background: rgba(255,255,255,0.1) !important; }
+th.col-green { color: #4ADE80; background: rgba(22,163,74,0.2)   !important; }
+th.col-red   { color: #F87171; background: rgba(220,38,38,0.2)    !important; }
 .va { color: #FCD34D; font-weight: 600; }
 .att-g { display: inline-block; background: var(--green-bg); color: #4ADE80;
   font-weight: 700; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
@@ -1349,12 +1352,12 @@ function renderRegionDrill(main) {
         <table>
           <thead><tr>
             <th>Rep</th>
-            <th style="color:#fff">Rep Forecast</th>
+            <th class="col-white">Rep Forecast</th>
             <th>Rep Core Proj</th>
             <th>Mgr Core Proj</th>
             <th>Rep Edu Proj</th>
             <th>Mgr Edu Proj</th>
-            <th style="color:#fff">Total Mgr Proj</th>
+            <th class="col-white">Total Mgr Proj</th>
             <th>Weekly Target</th>
           </tr></thead>
           <tbody>

@@ -15,7 +15,7 @@
   --border:    #243044;
   --text:      #EEF2FF;
   --muted:     #7C8BAA;
-  --accent:    #3B82F6;
+  --accent:    #C41230;
   --green:     #16A34A;
   --green-bg:  rgba(22,163,74,.12);
   --red:       #DC2626;
@@ -314,7 +314,7 @@ const REGIONS = {
   'Central':    ['Sam', 'Shaun', 'Beka', 'Misha'],
   'East':       ['Ben', 'Tara', 'Ivan'],
   'North East': ['Eileen', 'Malcolm'],
-  'Inside':     ['Emma', 'Charlotte', 'Constance', 'Carolina'],
+  'Inside':     ['Emma', 'Charlotte', 'Constance', 'Michelle', 'Suzanne'],
   'Texas':      ['DFW', 'Austin', 'Houston'],
   'Arizona':    ['Dan'],
   'Canada':     ['Canada']
@@ -325,7 +325,7 @@ const TARGETS = {
   Malcolm: 10000, Eileen: 36260, Ben: 10000, Tara: 16000,
   Ivan: 31500, Jennifer: 9000, SoCal: 13000, 'NorEast Cal': 11000,
   DFW: 20000, Canada: 10500, Emma: 17500, Charlotte: 20500,
-  Constance: 13250, Carolina: 13000, Dan: 10000
+  Constance: 13250, Dan: 10000
 };
 
 const PASSWORDS = {
@@ -404,7 +404,7 @@ function weekLabel(key) {
   const sun = new Date(mon);
   sun.setDate(mon.getDate() + 6);
   const M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  return `Week of ${M[mon.getMonth()]} ${mon.getDate()} – ${M[sun.getMonth()]} ${sun.getDate()}, ${sun.getFullYear()}`;
+  return `Week ${w} (${M[mon.getMonth()]} ${mon.getDate()} – ${M[sun.getMonth()]} ${sun.getDate()})`;
 }
 
 function stepWeek(key, delta) {

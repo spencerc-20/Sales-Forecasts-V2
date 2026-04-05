@@ -1162,12 +1162,12 @@ function renderLeadershipView(main) {
     return `
       <tr>
         <td><button class="xbtn" onclick="drillRegion('${region}')">${region}</button></td>
-        <td>${fmt(rt.repFcst)}</td>
+        <td class="col-white">${fmt(rt.repFcst)}</td>
         <td>${fmt(rt.repCoreProj)}</td>
         <td>${mgrCore}</td>
         <td>${fmt(rt.repEduProj)}</td>
         <td>${mgrEdu}</td>
-        <td>${mgrTotal}</td>
+        <td class="col-white">${mgrTotal}</td>
         <td><input type="number" class="ti" placeholder="0" min="0"
           value="${num(act.core)||''}"
           data-rgk="${rgk}" data-t="core" oninput="onActual(this)"
@@ -1205,12 +1205,12 @@ function renderLeadershipView(main) {
         <table style="min-width:1060px">
           <thead><tr>
             <th>Region</th>
-            <th>Rep Forecast</th>
+            <th class="col-white">Rep Forecast</th>
             <th>Rep Core Proj</th>
             <th>Mgr Core Fcst</th>
             <th>Rep Edu Proj</th>
             <th>Mgr Edu Fcst</th>
-            <th>Total Mgr Fcst</th>
+            <th class="col-white">Total Mgr Fcst</th>
             <th>Actual Core $</th>
             <th>Actual Edu $</th>
             <th>Core Attain %</th>
@@ -1220,12 +1220,12 @@ function renderLeadershipView(main) {
             ${regionRows}
             <tr class="total-row">
               <td>Grand Total</td>
-              <td>${fmt(at.repFcst)}</td>
+              <td class="col-white">${fmt(at.repFcst)}</td>
               <td>${fmt(at.repCoreProj)}</td>
               <td>${fmt(at.mgrCoreProj)}</td>
               <td>${fmt(at.repEduProj)}</td>
               <td>${fmt(at.mgrEduProj)}</td>
-              <td>${fmt(at.totalMgr)}</td>
+              <td class="col-white">${fmt(at.totalMgr)}</td>
               <td>${fmt(at.actCore)}</td>
               <td>${fmt(at.actEdu)}</td>
               <td>${grandCoreAtt  > 0 ? `<span class="${grandCoreAtt  >= 100 ? 'att-g':'att-r'}">${grandCoreAtt.toFixed(1)}%</span>`  : '—'}</td>

@@ -63,7 +63,15 @@ button { font-family: inherit; cursor: pointer; }
 #saveStatus { font-size: 12px; font-weight: 500; min-width: 86px; text-align: right; }
 #saveStatus.saving { color: var(--amber); }
 #saveStatus.saved  { color: var(--green); }
-#saveStatus.error  { color: var(--red); font-size: 11px; min-width: 200px; }
+#saveStatus.error  {
+  color: #fff; font-size: 11px; font-weight: 700;
+  background: var(--red); padding: 3px 8px; border-radius: 5px;
+  min-width: 0; white-space: nowrap;
+  animation: errPulse 1.5s ease-in-out infinite;
+}
+@keyframes errPulse {
+  0%,100% { opacity: 1; } 50% { opacity: 0.6; }
+}
 .badge {
   background: var(--surface); border: 1px solid var(--border);
   color: var(--muted); font-size: 10px; font-weight: 600;
@@ -497,9 +505,22 @@ async function loadAll() {
   try {
     const snap = await db.ref(DB_ROOT).get();
     S.data = snap.val() || {};
+    // ── Data integrity check ──────────────────────────────────
+    const weeks = Object.keys(S.data);
+    let totalKeys = 0;
+    weeks.forEach(wk => {
+      const wd = S.data[wk];
+      const repKeys = wd.reps      ? Object.keys(wd.reps).length      : 0;
+      const wgtKeys = wd.weightings ? Object.keys(wd.weightings).length : 0;
+      const actKeys = wd.actuals   ? Object.keys(wd.actuals).length   : 0;
+      totalKeys += repKeys + wgtKeys + actKeys;
+      console.log(`[DB] ${wk}: ${repKeys} rep(s), ${wgtKeys} weighting region(s), ${actKeys} actual region(s)`);
+    });
+    console.log(`[DB] Load complete — ${weeks.length} week(s), ${totalKeys} total top-level key groups`);
   } catch(e) {
-    console.warn('Firebase load failed, falling back to localStorage', e);
+    console.warn('[DB] Firebase load failed, falling back to localStorage', e);
     try { S.data = JSON.parse(localStorage.getItem(DB_ROOT) || '{}'); } catch {}
+    console.warn('[DB] Loaded from localStorage fallback');
   }
 }
 
@@ -513,11 +534,12 @@ async function savePath(path, value) {
   try {
     if (!db) throw new Error('no db');
     await db.ref(`${DB_ROOT}/${path}`).set(value);
+    // Only write localStorage after a confirmed Firebase success — never as a fallback
     try { localStorage.setItem(DB_ROOT, JSON.stringify(S.data)); } catch {}
     setSS('saved');
   } catch(e) {
-    console.error('Save failed', e);
-    try { localStorage.setItem(DB_ROOT, JSON.stringify(S.data)); } catch {}
+    console.error('[DB] Save failed — path:', path, e);
+    // Do NOT write to localStorage on failure: it would become a misleading source of truth
     setSS('error');
   }
 }
@@ -528,7 +550,7 @@ function setSS(status) {
   const el = document.getElementById('saveStatus');
   if (!el) return;
   el.className = 'save-status ' + status;
-  const map = { saving: 'Saving…', saved: 'Saved ✓', error: '⚠ SAVE FAILED — contact Spencer' };
+  const map = { saving: 'Saving…', saved: 'Saved ✓', error: '⚠ SAVE FAILED — Do not close tab — contact Spencer' };
   el.textContent = map[status] || '';
   clearTimeout(_ssClear);
   if (status === 'saved') _ssClear = setTimeout(() => setSS(''), 3000);
@@ -823,8 +845,8 @@ function onRepInput(el) {
   // Live recalculate projected column
   liveRepCalc(rk);
 
-  // Debounced save — path isolated to this category
-  debounce(`rep_${rk}_${ck}`, () => {
+  // Debounced save — key includes week to prevent cross-week cancellation
+  debounce(`${w}_rep_${rk}_${ck}`, () => {
     savePath(`${w}/reps/${rk}/${ck}`, S.data[w].reps[rk][ck]);
   });
 }
@@ -1044,7 +1066,7 @@ function onMgrWgt(el) {
     if (mtEl) mtEl.textContent = fmt(mc + me);
   }
 
-  debounce(`mgr_${rgk}_${rk}_${ck}`, () => {
+  debounce(`${w}_mgr_${rgk}_${rk}_${ck}`, () => {
     savePath(`${w}/weightings/${rgk}/${rk}/${ck}`, val);
   });
 }
@@ -1314,7 +1336,7 @@ function onActual(el) {
   if (!S.data[w].actuals[rgk])  S.data[w].actuals[rgk]  = {};
   S.data[w].actuals[rgk][t] = val;
 
-  debounce(`act_${rgk}_${t}`, () => {
+  debounce(`${w}_act_${rgk}_${t}`, () => {
     savePath(`${w}/actuals/${rgk}/${t}`, val);
   });
 }

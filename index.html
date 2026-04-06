@@ -267,23 +267,35 @@ input.ti[type="number"] { text-align: right; }
 
 /* ─── VP FORECAST BOX ─────────────────────────────────────── */
 .vp-box {
-  background: #EAB308; border: 2px solid #CA8A04;
-  border-radius: 13px; padding: 18px 24px;
+  background: rgba(234,179,8,.13);
+  border: 2px solid rgba(234,179,8,.55);
+  border-radius: 13px; padding: 22px 28px;
   margin-bottom: 20px;
-  display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 10px; text-align: center;
+  box-shadow: 0 0 28px rgba(234,179,8,.12);
 }
 .vp-box .vp-lbl {
   font-size: 11px; font-weight: 800; text-transform: uppercase;
-  letter-spacing: .09em; color: rgba(0,0,0,.55); white-space: nowrap;
+  letter-spacing: .09em; color: rgba(234,179,8,.75); white-space: nowrap;
+}
+.vp-box .vp-input-wrap {
+  display: flex; align-items: center; justify-content: center;
+  gap: 6px;
+}
+.vp-box .vp-dollar {
+  font-size: 26px; font-weight: 700; color: #FDE047;
 }
 .vp-box input {
-  background: rgba(0,0,0,.1); border: 2px solid rgba(0,0,0,.18);
+  background: rgba(234,179,8,.1); border: 2px solid rgba(234,179,8,.35);
   border-radius: 8px; font-family: 'DM Sans', sans-serif;
-  font-size: 26px; font-weight: 700; color: #000;
-  padding: 5px 14px; width: 220px;
+  font-size: 26px; font-weight: 700; color: #FDE047;
+  padding: 5px 14px; width: 220px; text-align: center;
+  caret-color: #FDE047;
 }
-.vp-box input:focus { outline: none; border-color: rgba(0,0,0,.45); background: rgba(0,0,0,.07); }
-.vp-box input::placeholder { color: rgba(0,0,0,.3); }
+.vp-box input:focus { outline: none; border-color: rgba(234,179,8,.7); background: rgba(234,179,8,.15); }
+.vp-box input::placeholder { color: rgba(253,224,71,.3); }
 
 /* ─── IMPORT MODAL ─────────────────────────────────────────── */
 .imp-overlay {
@@ -448,6 +460,11 @@ function sk(str) {
 function fmt(n) {
   if (n === null || n === undefined || (typeof n === 'number' && isNaN(n))) return '—';
   return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+/* Like fmt but without the $ prefix (used where $ is shown separately) */
+function fmtNum(n) {
+  if (!n && n !== 0) return '';
+  return Number(n).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
 
 function num(v) {
@@ -1255,10 +1272,12 @@ function renderLeadershipView(main) {
 
       <div class="vp-box">
         <div class="vp-lbl">VP Forecast</div>
-        <input type="number" placeholder="$0" min="0"
-          value="${num(S.data['vp_forecast_' + S.currentWeek]) || ''}"
-          oninput="onVpForecast(this)"
-          style="flex:1;max-width:240px">
+        <div class="vp-input-wrap">
+          <span class="vp-dollar">$</span>
+          <input type="text" inputmode="numeric" placeholder="0"
+            value="${S.data['vp_forecast_' + S.currentWeek] ? fmtNum(num(S.data['vp_forecast_' + S.currentWeek])) : ''}"
+            oninput="onVpForecast(this)" onfocus="onVpFocus(this)" onblur="onVpBlur(this)">
+        </div>
       </div>
 
       <div class="metric-grid">${metCards}</div>
@@ -1392,13 +1411,31 @@ function exportCSV() {
    VP FORECAST
 ══════════════════════════════════════════════════════════════ */
 
+/* Strip commas → parse raw number from formatted input */
+function vpRaw(el) { return num(el.value.replace(/,/g, '')); }
+
+/* While typing: allow only digits and commas (live comma-format) */
 function onVpForecast(el) {
-  const val = num(el.value);
+  const raw = el.value.replace(/[^0-9]/g, '');
+  const n   = raw ? parseInt(raw, 10) : 0;
+  /* keep cursor near end while typing by formatting inline */
+  el.value  = raw ? fmtNum(n) : '';
+  const val = n;
   const key = 'vp_forecast_' + S.currentWeek;
   S.data[key] = val;
-  debounce('vp_' + S.currentWeek, () => {
-    savePath(key, val);
-  });
+  debounce('vp_' + S.currentWeek, () => { savePath(key, val); });
+}
+
+/* On focus: strip commas so user can type digits cleanly */
+function onVpFocus(el) {
+  const raw = el.value.replace(/,/g, '');
+  el.value  = raw === '0' ? '' : raw;
+}
+
+/* On blur: re-apply comma formatting */
+function onVpBlur(el) {
+  const n = num(el.value.replace(/,/g, ''));
+  el.value = n ? fmtNum(n) : '';
 }
 
 /* ══════════════════════════════════════════════════════════════

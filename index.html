@@ -265,6 +265,50 @@ input.ti[type="number"] { text-align: right; }
 .metric-card.mc-red .ml { color: rgba(248,113,113,.7); }
 .metric-card.mc-red .mv { color: #F87171; }
 
+/* ─── VP FORECAST BOX ─────────────────────────────────────── */
+.vp-box {
+  background: #EAB308; border: 2px solid #CA8A04;
+  border-radius: 13px; padding: 18px 24px;
+  margin-bottom: 20px;
+  display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
+}
+.vp-box .vp-lbl {
+  font-size: 11px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: .09em; color: rgba(0,0,0,.55); white-space: nowrap;
+}
+.vp-box input {
+  background: rgba(0,0,0,.1); border: 2px solid rgba(0,0,0,.18);
+  border-radius: 8px; font-family: 'DM Sans', sans-serif;
+  font-size: 26px; font-weight: 700; color: #000;
+  padding: 5px 14px; width: 220px;
+}
+.vp-box input:focus { outline: none; border-color: rgba(0,0,0,.45); background: rgba(0,0,0,.07); }
+.vp-box input::placeholder { color: rgba(0,0,0,.3); }
+
+/* ─── IMPORT MODAL ─────────────────────────────────────────── */
+.imp-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.75);
+  z-index: 1000; display: flex; align-items: center;
+  justify-content: center; padding: 20px;
+}
+.imp-modal {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; padding: 28px; width: 100%;
+  max-width: 580px; max-height: 82vh; overflow-y: auto;
+}
+.imp-modal h3 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+.imp-modal .imp-sub { color: var(--muted); font-size: 13px; margin-bottom: 20px; }
+.imp-section-lbl {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .08em; color: var(--muted); margin-bottom: 5px;
+}
+.imp-list {
+  background: var(--bg); border-radius: 8px; padding: 10px 12px;
+  max-height: 110px; overflow-y: auto; margin-bottom: 14px;
+}
+.imp-list div { font-size: 12px; padding: 2px 0; color: #CBD5E1; }
+.imp-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+
 /* ─── COLORS ───────────────────────────────────────────────── */
 .vg { color: #4ADE80; font-weight: 700; }
 .vr { color: #F87171; font-weight: 700; }
@@ -485,6 +529,7 @@ const S = {
 
 let db = null;
 const debTimers = {};
+let pendingImport = null;
 
 /* ══════════════════════════════════════════════════════════════
    FIREBASE
@@ -1141,11 +1186,14 @@ function renderLeadershipView(main) {
     { l: 'Actual Closed',       v: fmt(actualTotal),     cls: actualCardCls }
   ];
 
-  const metCards = metrics.map(m => `
-    <div class="metric-card ${m.cls}">
+  const metCards = metrics.map(m => {
+    const isActual = m.l === 'Actual Closed';
+    return `
+    <div class="metric-card ${m.cls}"${isActual ? ' id="mc_actual_card"' : ''}>
       <div class="ml">${m.l}</div>
-      <div class="mv">${m.v}</div>
-    </div>`).join('');
+      <div class="mv"${isActual ? ' id="mc_actual_val"' : ''}>${m.v}</div>
+    </div>`;
+  }).join('');
 
   const regionRows = Object.keys(REGIONS).map(region => {
     const rt     = regionTotals(region);
@@ -1176,8 +1224,8 @@ function renderLeadershipView(main) {
           value="${num(act.edu)||''}"
           data-rgk="${rgk}" data-t="edu" oninput="onActual(this)"
           style="max-width:110px"></td>
-        <td>${cAtt}</td>
-        <td>${tAtt}</td>
+        <td id="latt_core_${rgk}">${cAtt}</td>
+        <td id="latt_tot_${rgk}">${tAtt}</td>
       </tr>`;
   }).join('');
 
@@ -1195,8 +1243,22 @@ function renderLeadershipView(main) {
             </svg>
             Export CSV
           </button>
+          <button class="btn btn-ghost" onclick="importCSV()" style="display:flex;align-items:center;gap:6px;padding:7px 13px">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M8 14V5M4 9l4-4 4 4"/><rect x="2" y="2" width="12" height="2" rx="1"/>
+            </svg>
+            Import CSV
+          </button>
           <span class="back-link" onclick="switchRole()">← Switch Role</span>
         </div>
+      </div>
+
+      <div class="vp-box">
+        <div class="vp-lbl">VP Forecast</div>
+        <input type="number" placeholder="$0" min="0"
+          value="${num(S.data['vp_forecast_' + S.currentWeek]) || ''}"
+          oninput="onVpForecast(this)"
+          style="flex:1;max-width:240px">
       </div>
 
       <div class="metric-grid">${metCards}</div>
@@ -1226,10 +1288,10 @@ function renderLeadershipView(main) {
               <td>${fmt(at.repEduProj)}</td>
               <td>${fmt(at.mgrEduProj)}</td>
               <td class="col-white">${fmt(at.totalMgr)}</td>
-              <td>${fmt(at.actCore)}</td>
-              <td>${fmt(at.actEdu)}</td>
-              <td>${grandCoreAtt  > 0 ? `<span class="${grandCoreAtt  >= 100 ? 'att-g':'att-r'}">${grandCoreAtt.toFixed(1)}%</span>`  : '—'}</td>
-              <td>${grandTotalAtt > 0 ? `<span class="${grandTotalAtt >= 100 ? 'att-g':'att-r'}">${grandTotalAtt.toFixed(1)}%</span>` : '—'}</td>
+              <td id="gt_actcore">${fmt(at.actCore)}</td>
+              <td id="gt_actedu">${fmt(at.actEdu)}</td>
+              <td id="gt_core_att">${grandCoreAtt  > 0 ? `<span class="${grandCoreAtt  >= 100 ? 'att-g':'att-r'}">${grandCoreAtt.toFixed(1)}%</span>`  : '—'}</td>
+              <td id="gt_tot_att">${grandTotalAtt > 0 ? `<span class="${grandTotalAtt >= 100 ? 'att-g':'att-r'}">${grandTotalAtt.toFixed(1)}%</span>` : '—'}</td>
             </tr>
           </tbody>
         </table>
@@ -1326,6 +1388,226 @@ function exportCSV() {
   URL.revokeObjectURL(url);
 }
 
+/* ══════════════════════════════════════════════════════════════
+   VP FORECAST
+══════════════════════════════════════════════════════════════ */
+
+function onVpForecast(el) {
+  const val = num(el.value);
+  const key = 'vp_forecast_' + S.currentWeek;
+  S.data[key] = val;
+  debounce('vp_' + S.currentWeek, () => {
+    savePath(key, val);
+  });
+}
+
+/* ══════════════════════════════════════════════════════════════
+   CSV IMPORT
+══════════════════════════════════════════════════════════════ */
+
+function importCSV() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.csv,text/csv';
+  input.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = evt => parseAndPreviewCSV(evt.target.result);
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+function parseCSVLine(line) {
+  const result = [];
+  let field = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQ && line[i + 1] === '"') { field += '"'; i++; }
+      else inQ = !inQ;
+    } else if (ch === ',' && !inQ) {
+      result.push(field.trim()); field = '';
+    } else {
+      field += ch;
+    }
+  }
+  result.push(field.trim());
+  return result;
+}
+
+function parseAndPreviewCSV(text) {
+  const rows = text.split(/\r?\n/).filter(l => l.trim()).map(parseCSVLine);
+
+  // Locate section headers
+  let detailStart = -1, summaryStart = -1;
+  rows.forEach((r, i) => {
+    if (r[0] === 'Week' && r[3] === 'Category')           detailStart  = i + 1;
+    if (r[0] === 'Week' && r[2] === 'Rep Forecast Total') summaryStart = i + 1;
+  });
+
+  if (detailStart < 0) {
+    alert('Could not parse CSV — missing detail header. Make sure you are using a file exported from this app.');
+    return;
+  }
+
+  const w = S.currentWeek;
+  const repWrites = [], wgtWrites = [], actWrites = [];
+
+  // ── Detail rows (rep + category data) ───────────────────────
+  for (let i = detailStart; i < rows.length; i++) {
+    const r = rows[i];
+    if (!r[0] || r[0] === 'Week') continue;
+    if (r.length < 8) break;
+    const [, region, rep, cat, fcstStr,  closeStr, , mgrCloseStr, , notes] = r;
+    if (!rep || !cat || !region) continue;
+    const rk  = sk(rep), ck = sk(cat), rgk = sk(region);
+    const amt = num(fcstStr.replace(/[$, ]/g, ''));
+    const cp  = num(closeStr);
+    const mc  = num(mgrCloseStr);
+
+    repWrites.push({
+      path:  `${w}/reps/${rk}/${ck}`,
+      value: { amount: amt, closePercent: cp, notes: notes || '' },
+      label: `${rep} › ${cat} — Forecast: ${fcstStr}, Close: ${closeStr}%`,
+      stateWriter: () => {
+        if (!S.data[w])             S.data[w]             = {};
+        if (!S.data[w].reps)        S.data[w].reps        = {};
+        if (!S.data[w].reps[rk])    S.data[w].reps[rk]    = {};
+        S.data[w].reps[rk][ck] = { amount: amt, closePercent: cp, notes: notes || '' };
+      }
+    });
+
+    if (mc > 0) {
+      wgtWrites.push({
+        path:  `${w}/weightings/${rgk}/${rk}/${ck}`,
+        value: mc,
+        label: `${region} › ${rep} › ${cat} = ${mc}%`,
+        stateWriter: () => {
+          if (!S.data[w])                           S.data[w]                           = {};
+          if (!S.data[w].weightings)                S.data[w].weightings                = {};
+          if (!S.data[w].weightings[rgk])           S.data[w].weightings[rgk]           = {};
+          if (!S.data[w].weightings[rgk][rk])       S.data[w].weightings[rgk][rk]       = {};
+          S.data[w].weightings[rgk][rk][ck] = mc;
+        }
+      });
+    }
+  }
+
+  // ── Summary rows (actuals) ───────────────────────────────────
+  if (summaryStart >= 0) {
+    for (let i = summaryStart; i < rows.length; i++) {
+      const r = rows[i];
+      if (r.length < 10) break;
+      const region = r[1];
+      if (!region || region === 'GRAND TOTAL') continue;
+      const rgk     = sk(region);
+      const actCore = num((r[8] || '').replace(/[$, ]/g, ''));
+      const actEdu  = num((r[9] || '').replace(/[$, ]/g, ''));
+
+      if (actCore > 0) {
+        actWrites.push({
+          path: `${w}/actuals/${rgk}/core`, value: actCore,
+          label: `${region} Core Actual = ${fmt(actCore)}`,
+          stateWriter: () => {
+            if (!S.data[w])               S.data[w]               = {};
+            if (!S.data[w].actuals)       S.data[w].actuals       = {};
+            if (!S.data[w].actuals[rgk])  S.data[w].actuals[rgk]  = {};
+            S.data[w].actuals[rgk].core = actCore;
+          }
+        });
+      }
+      if (actEdu > 0) {
+        actWrites.push({
+          path: `${w}/actuals/${rgk}/edu`, value: actEdu,
+          label: `${region} Edu Actual = ${fmt(actEdu)}`,
+          stateWriter: () => {
+            if (!S.data[w])               S.data[w]               = {};
+            if (!S.data[w].actuals)       S.data[w].actuals       = {};
+            if (!S.data[w].actuals[rgk])  S.data[w].actuals[rgk]  = {};
+            S.data[w].actuals[rgk].edu = actEdu;
+          }
+        });
+      }
+    }
+  }
+
+  pendingImport = [...repWrites, ...wgtWrites, ...actWrites];
+  showImportModal(repWrites, wgtWrites, actWrites);
+}
+
+function showImportModal(repWrites, wgtWrites, actWrites) {
+  const total = repWrites.length + wgtWrites.length + actWrites.length;
+
+  const section = (title, items) => !items.length ? '' : `
+    <div style="margin-bottom:14px">
+      <div class="imp-section-lbl">${title} (${items.length})</div>
+      <div class="imp-list">${items.map(x => `<div>${x.label}</div>`).join('')}</div>
+    </div>`;
+
+  const overlay = document.createElement('div');
+  overlay.id = 'impOverlay';
+  overlay.className = 'imp-overlay';
+  overlay.innerHTML = `
+    <div class="imp-modal">
+      <h3>Import CSV — Preview</h3>
+      <p class="imp-sub">
+        Target: <strong style="color:var(--text)">${weekLabel(S.currentWeek)}</strong>.
+        Each key will be written to its own isolated Firebase path.
+        Review all changes before confirming.
+      </p>
+      ${section('Rep Forecast Data', repWrites)}
+      ${section('Manager Weightings', wgtWrites)}
+      ${section('Actual Closed Values', actWrites)}
+      ${total === 0 ? '<p style="color:var(--amber);font-size:14px">No importable data found in this file.</p>' : ''}
+      <div class="imp-actions">
+        <button class="btn btn-ghost" onclick="closeImportModal()">Cancel</button>
+        ${total > 0 ? `<button class="btn btn-primary" onclick="confirmImport()">
+          Import ${total} change${total !== 1 ? 's' : ''} →
+        </button>` : ''}
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+function closeImportModal() {
+  const el = document.getElementById('impOverlay');
+  if (el) el.remove();
+  pendingImport = null;
+}
+
+async function confirmImport() {
+  if (!pendingImport || !pendingImport.length) { closeImportModal(); return; }
+  closeImportModal();
+
+  setSS('saving');
+  let failed = 0;
+  // Write each key to its own isolated path — never bulk set
+  for (const item of pendingImport) {
+    item.stateWriter(); // update local state first
+    try {
+      if (!db) throw new Error('no db');
+      await db.ref(`${DB_ROOT}/${item.path}`).set(item.value);
+    } catch(e) {
+      console.error('[DB] Import write failed — path:', item.path, e);
+      failed++;
+    }
+  }
+  pendingImport = null;
+
+  if (failed > 0) {
+    setSS('error');
+    console.error(`[DB] Import completed with ${failed} failed write(s)`);
+  } else {
+    try { localStorage.setItem(DB_ROOT, JSON.stringify(S.data)); } catch {}
+    setSS('saved');
+  }
+
+  // Re-render the leadership view with imported data
+  renderLeadershipView(document.getElementById('main'));
+}
+
 function onActual(el) {
   const { rgk, t } = el.dataset;
   const val = num(el.value);
@@ -1336,9 +1618,51 @@ function onActual(el) {
   if (!S.data[w].actuals[rgk])  S.data[w].actuals[rgk]  = {};
   S.data[w].actuals[rgk][t] = val;
 
+  // Live DOM update — no re-render needed
+  liveActualCalc(rgk);
+
   debounce(`${w}_act_${rgk}_${t}`, () => {
     savePath(`${w}/actuals/${rgk}/${t}`, val);
   });
+}
+
+function liveActualCalc(rgk) {
+  // ── Region attainment cells ──────────────────────────────────
+  const regionName = Object.keys(REGIONS).find(r => sk(r) === rgk);
+  if (regionName) {
+    const rt     = regionTotals(regionName);
+    const hasWgt = regionHasMgrWeighting(regionName);
+    const cAtt = (hasWgt && rt.mgrCoreProj > 0)
+      ? `<span class="${rt.coreAtt >= 100 ? 'att-g':'att-r'}">${rt.coreAtt.toFixed(1)}%</span>` : '—';
+    const tAtt = (hasWgt && rt.totalMgr > 0)
+      ? `<span class="${rt.totalAtt >= 100 ? 'att-g':'att-r'}">${rt.totalAtt.toFixed(1)}%</span>` : '—';
+    const cEl = document.getElementById(`latt_core_${rgk}`);
+    const tEl = document.getElementById(`latt_tot_${rgk}`);
+    if (cEl) cEl.innerHTML = cAtt;
+    if (tEl) tEl.innerHTML = tAtt;
+  }
+
+  // ── Grand total row ──────────────────────────────────────────
+  const at = allTotals();
+  const gca = at.mgrCoreProj > 0 ? at.actCore / at.mgrCoreProj * 100 : 0;
+  const gta = at.totalMgr    > 0 ? (at.actCore + at.actEdu) / at.totalMgr * 100 : 0;
+  const el = id => document.getElementById(id);
+  if (el('gt_actcore'))  el('gt_actcore').textContent  = fmt(at.actCore);
+  if (el('gt_actedu'))   el('gt_actedu').textContent   = fmt(at.actEdu);
+  if (el('gt_core_att')) el('gt_core_att').innerHTML   = gca > 0 ? `<span class="${gca >= 100 ? 'att-g':'att-r'}">${gca.toFixed(1)}%</span>` : '—';
+  if (el('gt_tot_att'))  el('gt_tot_att').innerHTML    = gta > 0 ? `<span class="${gta >= 100 ? 'att-g':'att-r'}">${gta.toFixed(1)}%</span>` : '—';
+
+  // ── Actual Closed metric card ────────────────────────────────
+  const actualTotal = at.actCore + at.actEdu;
+  let cls = 'mc-white';
+  if (at.totalMgr > 0) {
+    const ratio = actualTotal / at.totalMgr;
+    cls = ratio >= 1.0 ? 'mc-green' : ratio >= 0.9 ? 'mc-amber' : 'mc-red';
+  }
+  const card = document.getElementById('mc_actual_card');
+  const val  = document.getElementById('mc_actual_val');
+  if (card) card.className = `metric-card ${cls}`;
+  if (val)  val.textContent = fmt(actualTotal);
 }
 
 /* ══════════════════════════════════════════════════════════════

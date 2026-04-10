@@ -1038,7 +1038,9 @@ function renderManagerView(main) {
         </tr>`;
     }
 
-    const tgt = TARGETS[rep];
+    const tgt    = TARGETS[rep];
+    const hasWgt = repHasMgrWeighting(region, rep);
+    const mgrCls = (hasWgt && tgt) ? (mgrTot >= tgt ? 'col-green' : 'col-red') : '';
     return `
       <tr>
         <td>
@@ -1051,7 +1053,7 @@ function renderManagerView(main) {
         <td id="mc_${rk}">${fmt(mgrCore)}</td>
         <td>${fmt(t.eduProj)}</td>
         <td id="me_${rk}">${fmt(mgrEdu)}</td>
-        <td id="mt_${rk}">${fmt(mgrTot)}</td>
+        <td id="mt_${rk}" class="${mgrCls}">${fmt(mgrTot)}</td>
         <td>${tgt ? fmt(tgt) : '—'}</td>
       </tr>${detail}`;
   }).join('');

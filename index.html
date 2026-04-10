@@ -1006,7 +1006,8 @@ function renderManagerView(main) {
         const rpp = repCatProj(rep, cat);
         const w   = wgtData(rgk, rk);
         const wv  = num(w[ck]);
-        const mp  = mgrCatProj(region, rep, cat);
+        const mp    = mgrCatProj(region, rep, cat);
+        const notes = cd.notes || '—';
         return `
           <tr>
             <td>${cat}</td>
@@ -1020,15 +1021,16 @@ function renderManagerView(main) {
                 style="max-width:65px;display:inline-block">%
             </td>
             <td id="mp_${rgk}_${rk}_${ck}">${fmt(mp)}</td>
+            <td style="color:var(--muted);font-size:13px">${notes}</td>
           </tr>`;
       }).join('');
       detail = `
         <tr style="background:#0a101e">
-          <td colspan="7" style="padding:0">
+          <td colspan="8" style="padding:0">
             <table class="rep-detail" style="width:100%">
               <thead><tr>
                 <th>Category</th><th>Rep Forecast</th><th>Rep Projected</th>
-                <th>Mgr Close %</th><th>Mgr Projected</th>
+                <th>Mgr Close %</th><th>Mgr Projected</th><th>Notes</th>
               </tr></thead>
               <tbody>${catRows}</tbody>
             </table>
@@ -1036,6 +1038,7 @@ function renderManagerView(main) {
         </tr>`;
     }
 
+    const tgt = TARGETS[rep];
     return `
       <tr>
         <td>
@@ -1049,6 +1052,7 @@ function renderManagerView(main) {
         <td>${fmt(t.eduProj)}</td>
         <td id="me_${rk}">${fmt(mgrEdu)}</td>
         <td id="mt_${rk}">${fmt(mgrTot)}</td>
+        <td>${tgt ? fmt(tgt) : '—'}</td>
       </tr>${detail}`;
   }).join('');
 
@@ -1068,7 +1072,7 @@ function renderManagerView(main) {
           <thead><tr>
             <th>Rep</th><th>Rep Forecast</th><th>Rep Core Proj</th>
             <th>Mgr Core Proj</th><th>Rep Edu Proj</th><th>Mgr Edu Proj</th>
-            <th>Total Mgr Proj</th>
+            <th>Total Mgr Proj</th><th>Weekly Target</th>
           </tr></thead>
           <tbody>
             ${rows}
@@ -1080,6 +1084,7 @@ function renderManagerView(main) {
               <td>${fmt(rt.repEduProj)}</td>
               <td>${fmt(rt.mgrEduProj)}</td>
               <td>${fmt(rt.totalMgr)}</td>
+              <td>—</td>
             </tr>
           </tbody>
         </table>

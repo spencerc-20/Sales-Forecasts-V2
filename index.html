@@ -883,7 +883,7 @@ function renderRepView(main) {
               <td>—</td>
             </tr>
             ${tgt ? `<tr class="target-row">
-              <td>Weekly Target</td>
+              <td>Non EDU Target</td>
               <td>${fmt(tgt)}</td><td>—</td><td>${fmt(tgt)}</td><td>—</td>
             </tr>` : ''}
           </tbody>
@@ -1074,7 +1074,7 @@ function renderManagerView(main) {
           <thead><tr>
             <th>Rep</th><th>Rep Forecast</th><th>Rep Core Proj</th>
             <th>Mgr Core Proj</th><th>Rep Edu Proj</th><th>Mgr Edu Proj</th>
-            <th>Total Mgr Proj</th><th>Weekly Target</th>
+            <th>Total Mgr Proj</th><th>Non EDU Target</th>
           </tr></thead>
           <tbody>
             ${rows}
@@ -1743,8 +1743,8 @@ function renderRegionDrill(main) {
     return `
       <tr>
         <td><button class="xbtn" onclick="drillRep('${rep}','${region}')">${rep}</button></td>
-        <td class="col-white">${fmt(t.forecast)}</td>
-        <td>${fmt(t.coreProj)}</td>
+        <td>${fmt(t.forecast)}</td>
+        <td class="col-white">${fmt(t.coreProj)}</td>
         <td>${hasWgt ? fmt(mc) : '—'}</td>
         <td>${fmt(t.eduProj)}</td>
         <td>${hasWgt ? fmt(me) : '—'}</td>
@@ -1768,20 +1768,20 @@ function renderRegionDrill(main) {
         <table>
           <thead><tr>
             <th>Rep</th>
-            <th class="col-white">Rep Forecast</th>
-            <th>Rep Core Proj</th>
+            <th>Rep Forecast</th>
+            <th class="col-white">Rep Core Proj</th>
             <th>Mgr Core Proj</th>
             <th>Rep Edu Proj</th>
             <th>Mgr Edu Proj</th>
             <th class="col-white">Total Mgr Proj</th>
-            <th>Weekly Target</th>
+            <th>Non EDU Target</th>
           </tr></thead>
           <tbody>
             ${rows}
             <tr class="total-row">
               <td>Region Total</td>
-              <td class="col-white">${fmt(rt.repFcst)}</td>
-              <td>${fmt(rt.repCoreProj)}</td>
+              <td>${fmt(rt.repFcst)}</td>
+              <td class="col-white">${fmt(rt.repCoreProj)}</td>
               <td>${fmt(rt.mgrCoreProj)}</td>
               <td>${fmt(rt.repEduProj)}</td>
               <td>${fmt(rt.mgrEduProj)}</td>
